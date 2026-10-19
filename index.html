@@ -1,0 +1,3895 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport">
+<title>【独立版】谷子消费工作台</title>
+<!-- 本工作台通过 WorkBuddy「资料库」skill 搭建、存储和部署 -->
+<style>
+:root{
+  /* ===== 第 31 轮：整站配色改为 trae 工作台那一套（蓝主色 + 绿语义 + 浅蓝底）=====
+     trae 原始调色板原样搬过来，下面再用旧变量名做一层别名，避免大改样式表。 */
+  --blue-50:#eef5fc; --blue-100:#d8e8f7; --blue-200:#b5d4f0; --blue-300:#8abde6;
+  --blue-400:#5da1da; --blue-500:#3a86cc; --blue-600:#2b6fb5;
+  --green-50:#edf8f4; --green-100:#d1ecdf; --green-200:#a8d8c4; --green-300:#7cc4a9;
+  --green-400:#54b091; --green-500:#3d9a7c;
+  --orange:#f0b86e; --purple:#c49bce; --teal:#5fb5b9; --red:#e88b8b;
+  /* 第 32 轮：已出荷/已排发照 trae 走 shipped（蓝），自定义的 teal 深浅档已不需要 */
+
+  /* ---- 以下沿用旧变量名，取值全部对齐 trae ---- */
+  /* 主色：玫红 -> trae 蓝 */
+  --rose:#3a86cc; --rose-d:#2b6fb5; --rose-l:#eef5fc; --cyan:#3a86cc;
+  --ink:#1e3a4c; --ink-2:#4a6275; --muted:#8398a8;
+  --line:#d9e6f2; --bg:#f0f6fb; --card:#ffffff;
+  /* 支出不再用红：照搬 trae，金额一律深蓝黑；红只留给「删除 / 紧急」这类危险语义 */
+  --up:#c9564f; --up-bg:#fcedec; --up-d:#c9564f; --up-fill:#fcedec;
+  --down:#3d9a7c; --down-bg:#edf8f4; --down-d:#3d9a7c;
+  --warn:#d4860e; --warn-bg:#fff3e0; --warn-d:#d4860e;
+  --info:#2b6fb5; --info-bg:#eef5fc; --muted-d:#8398a8;
+  --ctrl:#3a86cc; --ctrl-ink:#ffffff; --ctrl-soft:#eef5fc;
+  --r:14px; --sh:0 2px 12px rgba(58,134,204,.06), 0 1px 2px rgba(58,134,204,.05);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  /* 第 32 轮：字体族换成 trae 那一串（删掉两个西文字体项，补 Noto Sans CJK SC）——字号一律不动 */
+  font-family:-apple-system,"PingFang SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif;
+  background:var(--bg); color:var(--ink); font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+button,input,select,textarea{font-family:inherit;font-size:16px;color:inherit}
+button{cursor:pointer;border:0;background:none}
+h1,h2,h3,h4{margin:0;font-weight:600}
+ul{margin:0;padding:0;list-style:none}
+.ic{width:18px;height:18px;flex:0 0 auto;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ---------- 布局 ---------- */
+.app{display:flex;min-height:100vh}
+.sidebar{
+  width:224px;flex:0 0 224px;background:var(--card);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;position:sticky;top:0;height:100vh;padding:18px 14px;
+}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 6px 16px}
+.brand-mark{width:34px;height:34px;border-radius:10px;background:var(--rose);display:grid;place-items:center;color:#fff;flex:0 0 auto}
+.brand-mark .ic{width:19px;height:19px;stroke-width:2}
+.brand b{display:block;font-size:15px;letter-spacing:.2px}
+.brand small{display:block;font-size:11.5px;color:var(--muted);margin-top:1px}
+.nav{display:flex;flex-direction:column;gap:2px;flex:1}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;
+  color:var(--ink-2);font-size:14.5px;font-weight:500;text-align:left;width:100%;min-height:44px;
+  transition:background .15s,color .15s;
+}
+.nav-item:hover{background:#eef5fc}
+.nav-item.is-active{background:var(--rose-l);color:var(--rose-d);font-weight:600}
+.nav-badge{
+  margin-left:auto;background:#edf1f7;color:var(--muted);border-radius:20px;
+  font-size:11px;padding:1px 7px;font-weight:600;min-width:20px;text-align:center;
+}
+.nav-item.is-active .nav-badge{background:#fff;color:var(--rose-d)}
+.sidebar-foot{border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px}
+.sync{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);padding:2px 4px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex:0 0 auto}
+.dot.on{background:var(--down);box-shadow:0 0 0 3px var(--down-bg)}
+.dot.off{background:var(--warn);box-shadow:0 0 0 3px var(--warn-bg)}
+.dot.busy{background:var(--info);box-shadow:0 0 0 3px var(--info-bg)}
+.ghost{
+  display:flex;align-items:center;justify-content:center;gap:7px;min-height:40px;
+  border:1px solid var(--line);border-radius:10px;background:#fff;font-size:13.5px;color:var(--ink-2);
+}
+.ghost:hover{background:#eef5fc;border-color:#b5d4f0}
+
+.main{flex:1;min-width:0;padding:20px 14px 40px;max-width:1240px;margin:0 auto}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.topbar h1{font-size:21px;letter-spacing:.2px}
+.topbar-actions{display:flex;align-items:center;gap:10px}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  min-height:44px;padding:0 16px;border-radius:11px;font-size:14.5px;font-weight:600;
+  background:var(--rose);color:#fff;transition:filter .15s;
+}
+.btn:hover{filter:brightness(.96)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn.sec{background:#fff;color:var(--ink-2);border:1px solid var(--line)}
+.btn.sec:hover{background:#eef5fc}
+.btn.sm{min-height:38px;padding:0 13px;font-size:13.5px;border-radius:9px}
+.btn.danger{background:#fff;color:var(--up);border:1px solid #f3d6d4}
+.btn.danger:hover{background:var(--up-bg);color:var(--ink)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh)}
+.pad{padding:16px 18px}
+.sec-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.sec-head h3{font-size:15.5px}
+.sec-head .hint{font-size:14.5px;color:var(--muted)}
+
+/* ---------- 概览 · 今天要处理（第 32 轮：卡片回到概览视图里） ---------- */
+.today{margin-bottom:16px;padding:15px 18px 16px;border-left:3px solid var(--rose)}
+.today-head{display:flex;align-items:center;gap:9px;margin-bottom:11px}
+.today-head h2{font-size:15.5px}
+.today-head .pill{
+  font-size:11.5px;font-weight:700;border-radius:20px;padding:2px 9px;
+  background:var(--rose-l);color:var(--rose-d);
+}
+.today-head .pill.zero{background:#eef0f4;color:var(--muted)}
+.todo-list{display:flex;flex-direction:column;gap:8px}
+.todo{
+  display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:11px;
+  background:#f8f9fc;border:1px solid #eef0f5;flex-wrap:wrap;
+}
+.todo.urgent{background:var(--up-bg);border-color:#f8d5d6}
+.todo.soon{background:var(--warn-bg);border-color:#fbe0cc}
+.todo-kind{
+  font-size:11px;font-weight:700;border-radius:6px;padding:3px 8px;flex:0 0 auto;
+  background:#fff;color:var(--rose-d);border:1px solid var(--line);
+}
+.todo.urgent .todo-kind{color:var(--up);border-color:#f0c3c4}
+.todo.soon .todo-kind{color:var(--warn);border-color:#f4d3b4}
+.todo-main{flex:1 1 190px;min-width:0}
+.todo-title{font-size:14px;font-weight:600;word-break:break-word}
+.todo-sub{font-size:12.5px;color:var(--muted);margin-top:2px}
+.todo-act{
+  min-height:38px;padding:0 13px;border-radius:9px;font-size:13px;font-weight:600;
+  background:var(--rose);color:#fff;flex:0 0 auto;
+}
+.todo-act.sec{background:#fff;color:var(--ink-2);border:1px solid var(--line)}
+.empty{
+  padding:18px;text-align:center;color:var(--muted);font-size:13.5px;
+  background:#f4f8fc;border:1px dashed #d9e6f2;border-radius:11px;
+}
+
+/* ---------- 视图 ---------- */
+.view{display:none}
+.view.is-active{display:block}
+
+/* ---------- KPI ---------- */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:12px;margin-bottom:16px}
+.kpi{padding:14px 15px;border-radius:var(--r);background:var(--card);border:1px solid var(--line);box-shadow:var(--sh)}
+.kpi .k-label{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.kpi .k-val{font-size:22px;font-weight:700;margin-top:6px;letter-spacing:-.3px}
+.kpi .k-sub{font-size:11.5px;color:var(--muted);margin-top:3px}
+/* 金额配色照搬 trae：只有「转出回本」用绿色，其余金额一律深蓝黑（不再用红） */
+.kpi.exp .k-val{color:var(--ink)}
+.kpi.inc .k-val{color:var(--down)}
+.kpi.net .k-val{color:var(--ink)}
+
+/* ---------- 图表 ---------- */
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(272px,1fr));gap:14px}
+.chart-box{padding:15px 16px}
+.chart-box h4{font-size:14px;margin-bottom:4px}
+.chart-box .hint{font-size:12px;color:var(--muted);margin-bottom:10px}
+/* ---------- 各渠道消费合计（概览里独立的一栏）---------- */
+.chsum{margin-top:2px}
+.cs-ch{border-bottom:1px solid var(--line)}
+.cs-ch:last-child{border-bottom:0}
+.cs-row{
+  display:grid;grid-template-columns:9px minmax(0,1fr) auto;align-items:center;gap:9px;
+  padding:9px 3px;border-radius:8px;font-size:13px;color:var(--ink-2);
+}
+.cs-row.is-split{grid-template-columns:9px minmax(0,1fr) auto 11px;cursor:pointer}
+.cs-row.is-split:hover{background:#eef5fc}
+.cs-row .sw{width:9px;height:9px;border-radius:3px;flex:0 0 auto}
+.cs-row .cn{display:flex;flex-direction:column;gap:1px;min-width:0}
+.cs-row .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cs-meta{font-size:11px;color:var(--ink);font-variant-numeric:tabular-nums}
+.cs-row .amt{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.cs-row .amt b{font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-.2px}
+.cs-row .caret{
+  width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;
+  border-top:5px solid var(--muted);opacity:.65;transition:transform .16s;
+}
+.cs-ch.is-open .cs-row .caret{transform:rotate(180deg)}
+/* 拼团按「团名批次」细分出来的小行 */
+.cs-subs{display:none;margin:0 0 6px;padding-left:19px}
+.cs-ch.is-open .cs-subs{display:block}
+.cs-subs li{
+  display:flex;align-items:baseline;gap:8px;padding:6px 3px;font-size:12.5px;
+  border-bottom:1px dashed var(--line);
+}
+.cs-subs li:last-child{border-bottom:0}
+.cs-subs .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-2)}
+.cs-subs .amt{display:flex;align-items:baseline;gap:7px;white-space:nowrap}
+.cs-subs .amt b{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.cs-subs .amt i{font-style:normal;font-size:11px;color:var(--ink);font-variant-numeric:tabular-nums}
+.d-add{
+  font-size:10.5px;font-weight:700;color:var(--ink);background:var(--up-fill);
+  border-radius:20px;padding:1px 6px;line-height:1.45;white-space:nowrap;
+  font-variant-numeric:tabular-nums;flex:0 0 auto;
+}
+.cs-empty{font-size:12.5px;color:var(--ink);padding:6px 3px}
+.s-gap{margin-top:10px;padding-top:9px;border-top:1px dashed var(--line);font-size:12px;line-height:1.6;color:var(--muted)}
+.s-gap[hidden]{display:none}
+/* 系列行：点一下弹出该系列的明细（按 IP 分类） */
+.cs-row.is-click{cursor:pointer}
+.cs-row.is-click:hover{background:#eef5fc}
+/* 卡片栏只留前三行，要看全部系列点标题或末尾那行 → 弹层里按 IP 分列 */
+.cs-more{
+  display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-2);
+  padding:8px 3px;cursor:pointer;border-top:1px solid var(--line);
+}
+.cs-more:hover{color:var(--rose)}
+.cs-more .ic{width:13px;height:13px;flex:0 0 auto}
+.cs-more .m-txt{font-weight:500}
+/* 卡片标题/说明也可以点开（比只给一行入口更好点中） */
+[data-sall]{cursor:pointer}
+[data-sall]:hover{color:var(--rose-d)}
+.bars{display:flex;flex-direction:column;gap:9px}
+.bar-row{display:grid;grid-template-columns:76px 1fr 62px;align-items:center;gap:9px;font-size:12.5px}
+.bar-track{height:9px;border-radius:20px;background:#eef5fc;overflow:hidden}
+.bar-fill{display:block;height:100%;border-radius:20px;background:var(--rose)}
+.bar-row .bv{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+
+/* ---------- 工具条 ---------- */
+.toolbar{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:12px;align-items:center}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.search{position:relative;flex:1 1 200px;min-width:150px}
+.search .ic{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);width:16px;height:16px}
+input[type=text],input[type=number],input[type=date],input[type=search],select,textarea{
+  width:100%;min-height:44px;padding:0 12px;border:1px solid var(--line);border-radius:10px;
+  background:#fff;font-size:16px;outline:none;transition:border-color .15s,box-shadow .15s;
+}
+.search input{padding-left:34px}
+textarea{min-height:76px;padding:10px 12px;resize:vertical;line-height:1.5}
+input:focus,select:focus,textarea:focus{border-color:var(--rose);box-shadow:0 0 0 3px var(--rose-l)}
+select{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b93a3' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 11px center;background-size:16px;padding-right:34px}
+/* 工具条下拉：与搜索框并排挤在一横排，四个下拉等宽；容器放不下才换行 */
+.toolbar select{width:auto;min-width:104px;flex:1 1 0}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{
+  min-height:38px;padding:0 13px;border-radius:20px;border:1px solid var(--line);background:#fff;
+  font-size:13.5px;color:var(--ink-2);font-weight:500;
+}
+.chip.is-on{background:var(--rose);border-color:var(--rose);color:#fff;font-weight:600}
+
+/* ---------- 表单 ---------- */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:12px}
+.form-grid .full{grid-column:1/-1}
+.form-actions{display:flex;gap:9px;margin-top:14px;flex-wrap:wrap}
+.form-tip{font-size:12.5px;color:var(--muted);margin-top:9px}
+.collapse{display:none}
+.collapse.is-open{display:block;margin-bottom:16px}
+
+/* ---------- 列表 ---------- */
+.rows{display:flex;flex-direction:column;gap:9px}
+.row-item{
+  display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:12px;
+  background:var(--card);border:1px solid var(--line);box-shadow:var(--sh);
+}
+.row-item .r-main{flex:1;min-width:0}
+.row-item .r-title{font-size:14.5px;font-weight:600;word-break:break-word}
+.row-item .r-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px;align-items:center}
+.row-item .r-note{font-size:12.5px;color:var(--muted);margin-top:6px;word-break:break-word}
+.row-item .r-amt{
+  font-size:16.5px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ink);
+}
+.row-item .r-amt.inc{color:var(--down)}
+.row-item .r-side{display:flex;flex-direction:column;align-items:flex-end;gap:7px;flex:0 0 auto}
+.row-acts{display:flex;gap:6px}
+.mini{
+  min-height:34px;padding:0 10px;border-radius:8px;border:1px solid var(--line);background:#fff;
+  font-size:12.5px;color:var(--ink-2);font-weight:500;
+}
+.mini:hover{background:#eef5fc}
+.mini.del{color:#c04a43;border-color:#f3d6d4}
+.tag{font-size:11.5px;font-weight:600;border-radius:6px;padding:2px 8px;background:#eff3f8;color:var(--ink-2);white-space:nowrap}
+/* 标签配色照搬 trae：IP 按作品分色、渠道用实心彩标、状态用浅底彩字。
+   ★ 第 32 轮：文字色不再自行压深，**原样用 trae 的取值**（对比度偏低是有意为之） */
+.tag.ip{background:#d8e8f7;color:#2b6fb5}
+.tag.ip-咒术{background:#d8e8f7;color:#2b6fb5}
+.tag.ip-鬼灭{background:#d1ecdf;color:#3d9a7c}
+.tag.ip-网王{background:#fff0e0;color:#d4860e}
+.tag.ip-其他{background:#f0eef4;color:#7b6f8e}
+.tag.ch{background:#5da1da;color:#fff}
+.tag.ch-拼团{background:#5fb5b9;color:#fff}
+.tag.ch-切煤{background:#54b091;color:#fff}
+.tag.ch-小九卡社{background:#5da1da;color:#fff}
+.tag.grp{background:#eff3f8;color:#4a6275}
+/* 到货状态：trae 把「已出荷 / 已排发」都归到 shipped（浅蓝底 + 蓝字），未出荷走 pending */
+.tag.st-未出荷{background:#fff3e0;color:#d4860e}
+.tag.st-已出荷{background:#d8e8f7;color:#2b6fb5}
+.tag.st-已排发{background:#d8e8f7;color:#2b6fb5}
+.tag.st-已到货{background:#d1ecdf;color:#3d9a7c}
+.tag.st-未填{background:#efefef;color:#8398a8}
+.tag.hot{background:#fcedec;color:#a83f39}
+.tag.soon{background:#fff3e0;color:#96570a}
+.tag.node{background:#eff3f8;color:#5c6b7a}
+.more-row{display:flex;justify-content:center;padding:14px 0 4px}
+
+/* ---------- 记录表格（第 31 轮：消费记录 / 转出回本 照 trae 的表格来做） ---------- */
+.table-wrap{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  overflow:hidden;box-shadow:var(--sh);
+}
+.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.rec-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:840px}
+.rec-table th{
+  background:var(--blue-50);color:var(--blue-600);font-weight:600;text-align:left;
+  padding:10px 12px;white-space:nowrap;font-size:11.5px;
+}
+/* 第 37 轮：表头跟着表体一起左对齐；付款金额/付款日期表头是可点排序按钮 */
+.rec-table .th-btn{
+  display:inline-flex;align-items:center;gap:4px;border:0;background:transparent;padding:0;
+  font:inherit;font-weight:600;color:inherit;cursor:pointer;
+}
+.rec-table .th-btn:hover{color:var(--blue-500)}
+.rec-table .th-btn .tri{width:9px;height:6px;flex:0 0 auto;opacity:.3}
+.rec-table .th-btn.is-on .tri{opacity:1}
+.rec-table .th-btn.is-on.is-asc .tri{transform:rotate(180deg)}
+.rec-table td{
+  padding:9px 12px;border-top:1px solid var(--line);color:var(--ink-2);
+  vertical-align:middle;text-align:left;
+}
+.rec-table tbody tr{transition:background .13s}
+.rec-table tbody tr.is-click{cursor:pointer}
+.rec-table tbody tr:hover{background:var(--blue-50)}
+.rec-table .amt{
+  font-weight:600;color:var(--ink);text-align:left;
+  font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+.rec-table .amt.inc{color:var(--down)}
+/* 第 32 轮照 trae：名称列不再单独加粗压深，跟着表体颜色/字重走 */
+.rec-table .nm{min-width:160px;word-break:break-word}
+.rec-table .mut{color:var(--muted)}
+.rec-table .cell-note{
+  max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);
+}
+.rec-table .cell-acts{white-space:nowrap;text-align:left}
+.rec-table .mini{padding:0 9px;font-size:12px;min-height:30px}
+.table-foot{
+  padding:10px 14px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);
+  display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;
+}
+/* 手机：次要列收起来 + 收紧内边距，横向滚动就能看到剩下的列 */
+@media(max-width:760px){
+  /* 今天要处理：手机上按钮独占一行，好点 */
+  .todo{padding:11px 12px}
+  .todo-act{width:100%;min-height:40px}
+  .rec-table{min-width:0;font-size:12px}
+  .rec-table th,.rec-table td{padding:8px 9px}
+  .rec-table .nm{min-width:0;max-width:142px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rec-table .col-opt{display:none}
+  .rec-table .cell-note{max-width:none}
+}
+/* 转出回本页顶部的统计条（照 trae 的 transfer-summary） */
+.table-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:14px}
+.table-stat{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  padding:14px 15px;box-shadow:var(--sh);text-align:center;
+}
+.table-stat .ts-label{font-size:12px;color:var(--muted);margin-bottom:5px}
+.table-stat .ts-value{font-size:20px;font-weight:700;color:var(--ink);letter-spacing:-.3px}
+.table-stat .ts-value.green{color:var(--down)}
+
+/* ---------- 状态选择浮层：到货状态可任意来回改 ---------- */
+.pick-pop{
+  position:fixed;z-index:90;width:198px;max-height:min(72vh,430px);overflow-y:auto;
+  padding:6px;border-radius:13px;background:var(--card);border:1px solid var(--line);
+  box-shadow:0 14px 34px -12px rgba(30,58,76,.3),0 2px 6px rgba(30,58,76,.06);
+  opacity:0;transform:translateY(-4px) scale(.985);pointer-events:none;
+  transition:opacity .13s ease,transform .13s ease;
+}
+.pick-pop.on{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
+.pick-pop .pp-group{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.04em;padding:8px 10px 5px}
+.pick-pop .pp-group+.pp-item{border-radius:8px}
+.pick-pop .pp-item{
+  display:flex;align-items:center;gap:9px;width:100%;min-height:38px;padding:0 10px;
+  border:0;background:none;border-radius:8px;font-size:13.5px;font-weight:500;
+  color:var(--ink-2);text-align:left;font-family:inherit;
+}
+.pick-pop .pp-item:hover{background:#eef5fc}
+.pick-pop .pp-item.is-cur{background:var(--rose-l);color:var(--rose-d);font-weight:700}
+.pick-pop .pp-dot{width:8px;height:8px;border-radius:50%;background:#8398a8;flex:0 0 auto}
+.pick-pop .pp-txt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pick-pop .pp-tick{width:15px;height:15px;flex:0 0 auto;color:var(--rose);opacity:0}
+.pick-pop .pp-item.is-cur .pp-tick{opacity:1}
+.pick-pop .pp-sep{height:1px;background:var(--line);margin:5px 8px}
+.tag.tap{
+  display:inline-flex;align-items:center;cursor:pointer;font-family:inherit;
+  border:1px solid transparent;transition:filter .13s;min-height:24px;
+}
+.tag.tap:hover{filter:brightness(.95)}
+.tag.tap::after{
+  content:"";width:0;height:0;margin-left:5px;flex:0 0 auto;
+  border-left:3.5px solid transparent;border-right:3.5px solid transparent;
+  border-top:4px solid currentColor;opacity:.5;
+}
+.row-item{cursor:pointer;transition:border-color .13s,box-shadow .13s}
+.row-item:hover{border-color:#b5d4f0;box-shadow:0 2px 3px rgba(30,58,76,.05),0 12px 28px -18px rgba(30,58,76,.24)}
+.row-item .mini{cursor:pointer}
+
+/* ---------- 草稿提示条 ---------- */
+.draft-bar{
+  display:none;align-items:center;gap:8px;margin:0 0 14px;padding:9px 12px;
+  background:#f4f8fc;border:1px solid #e4eef7;border-radius:10px;
+  font-size:12.5px;color:var(--ink);line-height:1.5;
+}
+.draft-bar.on{display:flex}
+.draft-bar .ic{width:15px;height:15px;flex:0 0 auto}
+.draft-bar .d-txt{flex:1;min-width:0}
+.draft-bar button{
+  border:0;background:none;color:var(--rose-d);font-weight:700;font-size:12.5px;
+  text-decoration:underline;padding:6px 2px;font-family:inherit;cursor:pointer;white-space:nowrap;
+}
+/* 「记一笔」上的小圆点：表单收起时也能看出还有草稿没提交 */
+.btn.has-draft{position:relative}
+.btn.has-draft::after{
+  content:"";position:absolute;top:-3px;right:-3px;width:9px;height:9px;border-radius:50%;
+  background:var(--warn);box-shadow:0 0 0 2px #fff;
+}
+
+/* ---------- 记录详情弹层 ---------- */
+.modal-mask{
+  position:fixed;inset:0;z-index:100;background:rgba(30,58,76,.42);
+  display:flex;align-items:center;justify-content:center;padding:20px;
+  opacity:0;pointer-events:none;transition:opacity .16s ease;
+}
+.modal-mask.on{opacity:1;pointer-events:auto}
+.modal{
+  /* 字段变多了（系列 / 付款截图），上限提到 980px，PC 上一屏就能看全，不用滚 */
+  width:min(520px,100%);max-height:min(92vh,980px);overflow-y:auto;
+  background:var(--card);border-radius:16px;
+  box-shadow:0 24px 60px -18px rgba(30,58,76,.45),0 2px 8px rgba(30,58,76,.08);
+  transform:translateY(10px) scale(.985);transition:transform .16s ease;
+}
+.modal-mask.on .modal{transform:translateY(0) scale(1)}
+/* 「全部系列」弹层要横着排 IP 列，给它更宽的身位 */
+.modal.wide{width:min(780px,100%)}
+/* 弹层头部那个「‹」返回键：只有从「全部系列」钻进来时才出现 */
+.modal-head .m-back{
+  width:34px;height:34px;flex:0 0 auto;border:1px solid var(--line);background:#fff;border-radius:9px;
+  display:grid;place-items:center;color:var(--ink);cursor:pointer;
+}
+.modal-head .m-back:hover{background:#eef5fc}
+.modal-head .m-back .ic{width:16px;height:16px}
+.modal-head{
+  display:flex;align-items:flex-start;gap:10px;padding:18px 20px 14px;
+  border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--card);z-index:1;
+}
+.modal-head .m-title{flex:1;min-width:0;font-size:16.5px;font-weight:700;word-break:break-word;line-height:1.4}
+.modal-head .m-amt{
+  font-size:19px;font-weight:800;color:var(--up);font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+.modal-head .m-amt.inc{color:var(--down)}
+.modal-head .m-close{
+  width:34px;height:34px;flex:0 0 auto;border:1px solid var(--line);background:#fff;border-radius:9px;
+  display:grid;place-items:center;color:var(--ink);cursor:pointer;
+}
+.modal-head .m-close:hover{background:#eef5fc;color:var(--ink)}
+.modal-head .m-close .ic{width:16px;height:16px}
+.modal-body{padding:16px 20px 6px}
+.modal-body .m-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.d-row{display:flex;gap:12px;padding:3px 0;border-bottom:1px solid var(--line);font-size:13.5px;align-items:flex-start}
+.d-row .d-k{flex:0 0 84px;color:var(--ink);font-size:12.5px;padding-top:8px}
+/* 详情里每个字段都是直接可改的控件：平时看着像文本，hover / 聚焦才显形 */
+.d-row .d-inp{
+  flex:1 1 auto;min-width:0;width:100%;box-sizing:border-box;font-family:inherit;
+  font-size:13.5px;font-weight:500;color:var(--ink);
+  background:rgba(217,230,242,.42);
+  border:1px solid transparent;border-radius:8px;padding:5px 8px;line-height:1.45;
+  transition:background .13s,border-color .13s;
+}
+.d-row .d-inp:hover{background:rgba(217,230,242,.92)}
+.d-row .d-inp:focus{background:#fff;border-color:var(--rose);outline:none}
+.d-row .d-inp::placeholder{color:var(--muted);font-weight:400}
+.d-row textarea.d-inp{resize:vertical;min-height:54px;display:block}
+.d-row .d-v{flex:1;min-width:0;color:var(--ink);word-break:break-word;font-weight:500}
+.d-group{margin-top:14px;padding-top:2px}
+.d-group+.d-group{margin-top:0}
+.d-group .d-g-k{font-size:12.5px;color:var(--ink);margin-bottom:7px}
+.d-opts{display:flex;flex-wrap:wrap;gap:7px}
+.d-opt{
+  min-height:34px;padding:0 12px;border-radius:20px;border:1px solid var(--line);background:#fff;
+  font-size:13px;color:var(--ink-2);font-weight:500;font-family:inherit;cursor:pointer;
+  display:inline-flex;align-items:center;gap:6px;transition:filter .13s;
+}
+.d-opt:hover{background:#eef5fc}
+.d-opt.is-cur{background:var(--ctrl);border-color:var(--ctrl);color:var(--ctrl-ink);font-weight:700}
+.d-opt .d-dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
+.modal-foot{
+  display:flex;gap:9px;padding:14px 20px 20px;
+  position:sticky;bottom:0;background:var(--card);border-top:1px solid var(--line);
+  box-shadow:0 -10px 18px -14px rgba(30,58,76,.28);
+}
+.modal-foot .btn{flex:1}
+.modal-foot .btn[disabled]{opacity:.45;cursor:not-allowed}
+/* 付款截图：缩略图网格 + 「添加」虚线格 */
+.d-row .d-shot{flex:1 1 auto;min-width:0;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.d-shot .sh-thumb{
+  position:relative;width:72px;height:72px;border-radius:9px;overflow:hidden;
+  border:1px solid var(--line);background:#eef5fc;flex:0 0 auto;
+}
+.d-shot .sh-thumb img{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in}
+.d-shot .sh-del{
+  position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:50%;border:0;padding:0;
+  background:rgba(30,58,76,.74);color:#fff;cursor:pointer;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+}
+.d-shot .sh-del .ic{width:11px;height:11px}
+.d-shot .sh-add{
+  width:72px;height:72px;border-radius:9px;border:1px dashed var(--line);background:#fff;padding:0;
+  color:var(--muted);font-size:12px;font-family:inherit;cursor:pointer;flex:0 0 auto;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+}
+.d-shot .sh-add:hover{border-color:var(--rose);color:var(--rose)}
+.d-shot .sh-add .ic{width:16px;height:16px}
+.d-shot .sh-add[disabled]{opacity:.5;cursor:progress}
+.d-shot .sh-tip{flex:1 1 100%;font-size:11.5px;color:var(--ink-2);line-height:1.5;margin:1px 0 3px}
+/* 点缩略图放大看凭证 */
+.shot-zoom{
+  position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;
+  padding:22px;background:rgba(30,58,76,.62);cursor:zoom-out;
+}
+.shot-zoom.on{display:flex}
+.shot-zoom img{
+  max-width:100%;max-height:100%;border-radius:10px;background:#fff;
+  box-shadow:0 22px 54px -20px rgba(30,58,76,.62);
+}
+
+/* ---------- 系列明细弹层（点概览的系列行弹出）---------- */
+.sp-hint{margin-bottom:12px}
+.sp-g{margin-bottom:13px}
+.sp-g-h{
+  display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  padding:5px 0;border-bottom:1px solid var(--line);
+}
+.sp-g-k{font-size:13px;font-weight:700;color:var(--ink)}
+.sp-g-m{font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.sp-list{list-style:none;margin:0;padding:0}
+.sp-r{
+  display:flex;align-items:center;gap:8px;padding:7px 2px;font-size:12.5px;
+  border-bottom:1px solid var(--line);cursor:pointer;
+}
+.sp-r:last-child{border-bottom:0}
+.sp-r:hover{background:#eef5fc}
+.sp-r .sp-n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+.sp-r .sp-d{color:var(--muted);font-size:11.5px;font-variant-numeric:tabular-nums}
+.sp-r .sp-a{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* ---------- 全部系列弹层（点「各系列消费合计」卡片打开）：一个 IP 一列 ---------- */
+.sp-cols{display:flex;gap:11px;overflow-x:auto;padding:2px 2px 6px;align-items:flex-start}
+.sp-col{
+  flex:1 1 0;min-width:188px;border:1px solid var(--line);border-radius:12px;
+  padding:10px 11px 6px;background:#fafcff;
+}
+.sp-col-h{
+  display:flex;align-items:baseline;justify-content:space-between;gap:8px;
+  padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:2px;
+}
+.sp-col-k{font-size:13px;font-weight:700;color:var(--ink);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sp-col-m{font-size:11.5px;font-weight:600;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.sp-clist{list-style:none;margin:0;padding:0}
+.sp-cr{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;
+  padding:7px 4px;border-bottom:1px solid var(--line);border-radius:7px;
+  font-size:12.5px;cursor:pointer;
+}
+.sp-cr:last-child{border-bottom:0}
+.sp-cr:hover{background:#eef5fc}
+.sp-cr .sp-cn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-2)}
+.sp-cr .sp-cn i{font-style:normal;font-size:11px;color:var(--muted);margin-left:5px}
+.sp-cr .sp-ca{font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* ---------- 「谷子系列」输入建议：记住以前填过的系列名，打一个字就能挑 ---------- */
+.sug{
+  position:fixed;z-index:130;max-height:min(46vh,258px);overflow-y:auto;
+  background:var(--card);border:1px solid var(--line);border-radius:10px;padding:4px;
+  box-shadow:0 14px 34px -12px rgba(30,58,76,.35),0 2px 6px rgba(30,58,76,.06);
+}
+.sug[hidden]{display:none}
+.sug .sug-cap{font-size:11px;color:var(--muted);padding:5px 8px 3px}
+.sug .sug-item{
+  display:block;width:100%;text-align:left;border:0;background:transparent;cursor:pointer;
+  font-family:inherit;font-size:14px;color:var(--ink);padding:8px 9px;border-radius:7px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.sug .sug-item:hover{background:#eef5fc}
+.sug .sug-item b{color:var(--rose-d);font-weight:700}
+
+/* ---------- 提示条 ---------- */
+.toast{
+  position:fixed;left:50%;bottom:78px;transform:translateX(-50%) translateY(14px);
+  background:#1e3a4c;color:#fff;font-size:13.5px;padding:11px 18px;border-radius:11px;box-shadow:0 10px 28px -14px rgba(30,58,76,.55);
+  opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:80;max-width:88vw;text-align:center;
+}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.banner{
+  display:none;align-items:flex-start;gap:9px;padding:11px 14px;border-radius:11px;
+  background:var(--warn-bg);border:1px solid #f5dfc2;color:#8a5a0b;font-size:13px;margin-bottom:14px;
+}
+.banner.on{display:flex}
+.banner .ic{color:var(--warn);margin-top:1px;flex:0 0 auto}
+.banner .b-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.banner .b-txt{flex:1;min-width:0}
+.banner .b-diag{
+  font-size:11.5px;color:#8a5a0b;word-break:break-all;font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+.banner .b-btn{
+  flex:0 0 auto;border:1px solid #eed3b4;background:#fff;color:#8a5a0b;
+  font-weight:700;font-size:12.5px;font-family:inherit;cursor:pointer;
+  padding:8px 13px;border-radius:9px;min-height:36px;line-height:1;white-space:nowrap;
+}
+.banner .b-btn:disabled{opacity:.55;cursor:default}
+
+/* ---------- 移动端 ---------- */
+.tabbar{display:none}
+@media (max-width:820px){
+  .app{display:block}
+  .sidebar{display:none}
+  .main{padding:14px 14px calc(78px + env(safe-area-inset-bottom));max-width:none}
+  .topbar h1{font-size:19px}
+  .topbar-actions .sync-inline{display:flex}
+  .tabbar{
+    display:flex;position:fixed;left:0;right:0;bottom:0;z-index:60;background:#fff;
+    border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);
+    box-shadow:0 -6px 20px -14px rgba(30,58,76,.35);
+  }
+  .tabbar button{
+    flex:1;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:3px;font-size:11px;color:var(--muted);font-weight:500;position:relative;
+  }
+  .tabbar button.is-active{color:var(--rose-d);font-weight:600}
+  .tabbar .ic{width:20px;height:20px}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .kpi .k-val{font-size:19px}
+  .charts{grid-template-columns:1fr}
+  .bar-row{grid-template-columns:62px 1fr 56px;font-size:12px}
+  .toolbar .search{flex:1 1 100%}
+  .toolbar select{width:auto;min-width:0;max-width:none;flex:1 1 44%}
+  .row-item{flex-wrap:wrap}
+  .row-item .r-side{width:100%;flex-direction:row;align-items:center;justify-content:space-between}
+  .btn,.chip{min-height:44px}
+  .banner{flex-wrap:wrap;align-items:center}
+  .banner .b-btn{min-height:44px;order:1;flex:1 1 auto}
+  .banner .b-main{flex:1 1 100%;order:2}
+  .banner .b-diag{font-size:11px}
+  .row-item .row-acts{gap:8px}
+  .row-item .mini{min-height:40px;padding:0 13px}
+  .tag.tap{min-height:30px;padding:4px 10px}
+  .pick-pop{width:min(78vw,230px);max-height:64vh}
+  .pick-pop .pp-item{min-height:44px;font-size:14px}
+  /* 详情弹层在窄屏变成底部抽屉，拇指够得着 */
+  .modal-mask{align-items:flex-end;padding:0}
+  .modal{
+    width:100%;max-height:88vh;border-radius:18px 18px 0 0;
+    padding-bottom:env(safe-area-inset-bottom);
+    transform:translateY(28px);
+  }
+  .modal-mask.on .modal{transform:translateY(0)}
+  .d-opt{min-height:42px;font-size:13.5px}
+  .modal-foot .btn{min-height:46px}
+  .d-row{font-size:14px}
+  /* 输入框字号必须 ≥16px，否则 iOS 聚焦时会自动放大整页 */
+  .d-row .d-inp{font-size:16px;padding:7px 9px}
+  .d-row .d-k{padding-top:11px}
+}
+@media (max-width:420px){
+  .kpis{grid-template-columns:1fr 1fr}
+  .kpi .k-val{font-size:18px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0l-7.2-7.2a2 2 0 0 1-.6-1.4V4a1 1 0 0 1 1-1h8a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.6Z"/><circle cx="7.5" cy="7.5" r="1.4"/></svg>
+      </span>
+      <div><b>谷子工作台</b><small>消费 · 场贩 · 回本</small></div>
+    </div>
+    <nav class="nav" id="sideNav">
+      <button class="nav-item is-active" data-view="overview">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M3 13h6V3H3zM15 21h6V11h-6zM3 21h6v-4H3zM15 7h6V3h-6z"/></svg>
+        <span>概览</span>
+      </button>
+      <button class="nav-item" data-view="consume">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h10"/></svg>
+        <span>消费记录</span><span class="nav-badge" id="navConsume">0</span>
+      </button>
+      <button class="nav-item" data-view="transfer">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M17 3l4 4-4 4M21 7H8M7 21l-4-4 4-4M3 17h13"/></svg>
+        <span>转出回本</span><span class="nav-badge" id="navTransfer">0</span>
+      </button>
+      <button class="nav-item" data-view="show">
+        <svg class="ic" viewBox="0 0 24 24"><rect height="16" rx="2" width="18" x="3" y="5"/><path d="M8 3v4M16 3v4M3 11h18"/></svg>
+        <span>待开场贩</span><span class="nav-badge" id="navShow">0</span>
+      </button>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="sync"><span class="dot busy" id="dot"></span><span id="syncText">正在连接…</span></div>
+      <button class="ghost" id="btnBackup">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>导出备份
+      </button>
+      <button class="ghost" id="btnRestore">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M12 21V9M7 14l5-5 5 5M5 3h14"/></svg>导入恢复
+      </button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <h1 id="viewTitle">概览</h1>
+      <div class="topbar-actions">
+        <div class="sync sync-inline"><span class="dot busy" id="dot2"></span><span id="syncText2">正在连接…</span></div>
+      </div>
+    </div>
+
+    <div class="banner" id="offlineBanner">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+      <div class="b-main">
+        <span class="b-txt" id="offlineText">数据表暂时连不上（已自动重试过几次）。点右侧「重试连接」可以立刻再试一次；你的输入已自动存成草稿，不会丢。</span>
+        <span class="b-diag" id="offlineDiag"></span>
+      </div>
+      <button class="b-btn" id="btnRetry" type="button">重试连接</button>
+      <button class="b-btn" id="btnDiag" type="button">复制诊断</button>
+    </div>
+
+    <!-- ================= 概览 ================= -->
+    <section class="view is-active" id="view-overview">
+      <!-- 第 32 轮：今日待办卡片回到「概览」里（只在这个视图显示） -->
+      <section class="card today" id="todayCard">
+        <div class="today-head">
+          <h2>今天要处理</h2>
+          <span class="pill zero" id="todayPill">0 项</span>
+        </div>
+        <div class="todo-list" id="todayList"></div>
+      </section>
+
+      <div class="kpis">
+        <div class="kpi exp">
+          <div class="k-label"><svg class="ic" viewBox="0 0 24 24"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>累计消费</div>
+          <div class="k-val" data-sp-bindable="database" data-sp-database-id="KU34G0iZ9mBABi7PHnyz6w" id="kpiTotal">¥0</div>
+          <div class="k-sub" id="kpiTotalSub">共 0 笔</div>
+        </div>
+        <div class="kpi exp">
+          <div class="k-label"><svg class="ic" viewBox="0 0 24 24"><rect height="16" rx="2" width="18" x="3" y="5"/><path d="M3 11h18M8 3v4M16 3v4"/></svg>本月消费</div>
+          <div class="k-val" data-sp-bindable="database" data-sp-database-id="KU34G0iZ9mBABi7PHnyz6w" id="kpiMonth">¥0</div>
+          <div class="k-sub" id="kpiMonthSub">—</div>
+        </div>
+        <div class="kpi">
+          <div class="k-label"><svg class="ic" viewBox="0 0 24 24"><path d="M3 7h11v10H3zM14 10h4l3 3v4h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>在途货值</div>
+          <div class="k-val" data-sp-bindable="database" data-sp-database-id="KU34G0iZ9mBABi7PHnyz6w" id="kpiTransit">¥0</div>
+          <div class="k-sub" id="kpiTransitSub">未到货 0 件</div>
+        </div>
+        <div class="kpi inc">
+          <div class="k-label"><svg class="ic" viewBox="0 0 24 24"><path d="M17 3l4 4-4 4M21 7H8M7 21l-4-4 4-4M3 17h13"/></svg>转出回本</div>
+          <div class="k-val" data-sp-bindable="database" data-sp-database-id="KU34G0iZ9mBABi7PHnyz6w" id="kpiTransfer">¥0</div>
+          <div class="k-sub" id="kpiTransferSub">共 0 笔</div>
+        </div>
+        <div class="kpi net">
+          <div class="k-label"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>净支出</div>
+          <div class="k-val" data-sp-bindable="database" data-sp-database-id="KU34G0iZ9mBABi7PHnyz6w" id="kpiNet">¥0</div>
+          <div class="k-sub">累计消费 − 转出回本</div>
+        </div>
+      </div>
+
+      <div class="charts">
+        <div class="card chart-box">
+          <h4 data-sall="1" title="点这里看全部系列（按 IP 分列）">各系列消费合计</h4>
+          <div class="hint" data-sall="1" id="hintSeries">按「谷子系列」汇总累计消费</div>
+          <ul class="chsum" id="seriesSum"></ul>
+          <div class="hint s-gap" hidden id="seriesGapTip"></div>
+        </div>
+        <div class="card chart-box">
+          <h4>各渠道消费合计</h4>
+          <div class="hint" id="hintChanSum">累计 ¥0 · 共 0 个渠道</div>
+          <ul class="chsum" id="chanSum"></ul>
+        </div>
+        <div class="card chart-box">
+          <h4>各 IP 的投入</h4>
+          <div class="hint">按累计消费金额排名</div>
+          <div id="chartIp"></div>
+        </div>
+      </div>
+
+      <div class="card chart-box" style="margin-top:14px">
+        <h4>近 12 个月消费走势</h4>
+        <div class="hint">按付款日期归月（无付款日期的记录不计入）<span id="chartYearTotal"></span></div>
+        <div id="chartMonth"></div>
+      </div>
+    </section>
+
+    <!-- ================= 消费记录 ================= -->
+    <section class="view" id="view-consume">
+      <div class="sec-head">
+        <div><h3>消费记录</h3><div class="hint" id="consumeHint">共 0 条</div></div>
+        <button class="btn" data-panel-toggle="1" id="btnOpenConsume">
+          <svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>记一笔
+        </button>
+      </div>
+
+      <div class="card pad collapse" id="consumeFormWrap">
+        <div class="draft-bar" id="draftBar">
+          <svg aria-hidden="true" class="ic" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+          <span class="d-txt" id="draftText">填写内容已自动保存</span>
+          <button id="btnDropDraft" type="button">丢弃草稿</button>
+        </div>
+        <div class="form-grid">
+          <div class="field full">
+            <label for="c-name">谷子名称 <span style="color:#c9564f">*</span></label>
+            <input autocomplete="off" id="c-name" name="ledger-name" placeholder="例：五条 幻影夜行牛奶吧唧、立牌" type="text">
+          </div>
+          <div class="field">
+            <label for="c-series">谷子系列</label>
+            <input autocomplete="off" id="c-series" name="ledger-series" placeholder="打一个字就能挑以前填过的（例：幻影）" type="text">
+          </div>
+          <div class="field">
+            <label for="c-ip">IP</label>
+            <select id="c-ip" name="ledger-ip"><option value>请选择</option></select>
+          </div>
+          <div class="field">
+            <label for="c-role">角色</label>
+            <input autocomplete="off" id="c-role" name="ledger-role" placeholder="五条 / 迹部…" type="text">
+          </div>
+          <div class="field">
+            <label for="c-channel">来源渠道 <span style="color:#c9564f">*</span></label>
+            <select id="c-channel" name="ledger-channel"><option value>请选择</option></select>
+          </div>
+          <div class="field">
+            <label for="c-group">团名 / 批次</label>
+            <input autocomplete="off" id="c-group" name="ledger-group" placeholder="猫耳 / 切煤 / 小九卡社系列…" type="text">
+          </div>
+          <div class="field">
+            <label for="c-amount">金额 (¥) <span style="color:#c9564f">*</span></label>
+            <input id="c-amount" inputmode="decimal" min="0" name="ledger-amount" placeholder="0.00" step="0.01" type="number">
+          </div>
+          <div class="field">
+            <label for="c-ship">到货状态</label>
+            <select id="c-ship" name="ledger-ship"><option value>请选择</option></select>
+          </div>
+          <div class="field">
+            <label for="c-eta">预计到货</label>
+            <input autocomplete="off" id="c-eta" name="ledger-eta" placeholder="例：10月中 / 2027.1" type="text">
+          </div>
+          <div class="field">
+            <label for="c-date">付款日期</label>
+            <input id="c-date" name="ledger-date" type="date">
+          </div>
+          <div class="field full">
+            <label for="c-note">备注</label>
+            <textarea id="c-note" name="ledger-note" placeholder="数量、转单、补款说明…"></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn" id="btnSaveConsume">保存这笔</button>
+          <button class="btn sec" id="btnResetConsume">清空</button>
+        </div>
+        <div class="form-tip">提示：填了「谷子系列」的记录会自动汇总到概览的「各系列消费合计」；漏填也没关系，点开那条记录就能补。</div>
+      </div>
+
+      <div class="toolbar">
+        <div class="search">
+          <svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input autocomplete="off" id="cSearch" placeholder="搜名称 / 角色 / 团名 / 系列" type="search">
+        </div>
+        <select aria-label="按渠道筛选" id="cFilterChannel"><option value>全部渠道</option></select>
+        <select aria-label="按 IP 筛选" id="cFilterIp"><option value>全部 IP</option></select>
+        <select aria-label="按谷子系列筛选" id="cFilterSeries"><option value>全部系列</option></select>
+        <select aria-label="按到货状态筛选" id="cFilterShip"><option value>全部到货状态</option></select>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-scroll">
+          <table class="rec-table">
+            <thead id="consumeHead">
+              <tr>
+                <th>谷子名称</th>
+                <th>IP</th>
+                <th>谷子系列</th>
+                <th class="col-opt">角色</th>
+                <th>渠道</th>
+                <th><button class="th-btn" data-sort="amount" type="button"><span>付款金额</span><svg aria-hidden="true" class="tri" viewBox="0 0 10 6"><path d="M0 0h10L5 6z" fill="currentColor"/></svg></button></th>
+                <th><button class="th-btn" data-sort="date" type="button"><span>付款日期</span><svg aria-hidden="true" class="tri" viewBox="0 0 10 6"><path d="M0 0h10L5 6z" fill="currentColor"/></svg></button></th>
+                <th>到货状态</th>
+                <th>预计到货</th>
+                <th class="col-opt">备注</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="consumeList"></tbody>
+          </table>
+        </div>
+        <div class="table-foot">
+          <span id="consumeFoot"></span>
+          <span id="consumeFootSum"></span>
+        </div>
+      </div>
+      <div class="more-row" id="consumeMore"></div>
+    </section>
+
+    <!-- ================= 转出回本 ================= -->
+    <section class="view" id="view-transfer">
+      <div class="sec-head">
+        <div><h3>转出 / 回本</h3><div class="hint" id="transferHint">把出掉的谷子记下来，看看净支出到底多少</div></div>
+        <button class="btn" data-panel-toggle="1" id="btnOpenTransfer">
+          <svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>记一笔
+        </button>
+      </div>
+
+      <div class="table-stats">
+        <div class="table-stat">
+          <div class="ts-label">转出回本总额</div>
+          <div class="ts-value green" data-sp-bindable="database" data-sp-database-id="KU34G0iZ9mBABi7PHnyz6w" id="kpiTransferTotal">¥0</div>
+        </div>
+        <div class="table-stat">
+          <div class="ts-label">转出笔数</div>
+          <div class="ts-value" data-sp-bindable="database" data-sp-database-id="KU34G0iZ9mBABi7PHnyz6w" id="kpiTransferCount">0</div>
+        </div>
+        <div class="table-stat">
+          <div class="ts-label">累计消费</div>
+          <div class="ts-value" data-sp-bindable="database" data-sp-database-id="KU34G0iZ9mBABi7PHnyz6w" id="kpiTransferSpend">¥0</div>
+        </div>
+        <div class="table-stat">
+          <div class="ts-label">回本率</div>
+          <div class="ts-value" data-sp-bindable="database" data-sp-database-id="KU34G0iZ9mBABi7PHnyz6w" id="kpiRecoverRate">0%</div>
+        </div>
+        <div class="table-stat">
+          <div class="ts-label">净支出</div>
+          <div class="ts-value" data-sp-bindable="database" data-sp-database-id="KU34G0iZ9mBABi7PHnyz6w" id="kpiTransferNet">¥0</div>
+        </div>
+      </div>
+
+      <div class="card pad collapse" id="transferFormWrap">
+        <div class="form-grid">
+          <div class="field full">
+            <label for="t-name">转出内容 <span style="color:#c9564f">*</span></label>
+            <input autocomplete="off" id="t-name" name="transfer-name" placeholder="例：伏黑惠 剧场版特典吧唧" type="text">
+          </div>
+          <div class="field">
+            <label for="t-amount">转出金额 (¥) <span style="color:#c9564f">*</span></label>
+            <input id="t-amount" inputmode="decimal" min="0" name="transfer-amount" placeholder="0.00" step="0.01" type="number">
+          </div>
+          <div class="field">
+            <label for="t-date">转出日期</label>
+            <input id="t-date" name="transfer-date" type="date">
+          </div>
+          <div class="field full">
+            <label for="t-note">备注</label>
+            <textarea id="t-note" name="transfer-note" placeholder="原价、亏了多少、交易方式…"></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn" id="btnSaveTransfer">保存转出</button>
+          <button class="btn sec" id="btnResetTransfer">清空</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-scroll">
+          <table class="rec-table">
+            <thead>
+              <tr>
+                <th>转出物品</th>
+                <th>IP</th>
+                <th>转出金额</th>
+                <th>转出日期</th>
+                <th class="col-opt">渠道</th>
+                <th class="col-opt">备注</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="transferList"></tbody>
+          </table>
+        </div>
+        <div class="table-foot">
+          <span id="transferFoot"></span>
+          <span id="transferFootSum"></span>
+        </div>
+      </div>
+      <div class="more-row" id="transferMore"></div>
+    </section>
+
+    <!-- ================= 待开场贩 ================= -->
+    <section class="view" id="view-show">
+      <div class="sec-head">
+        <div><h3>待开场贩</h3><div class="hint" id="showHint">场贩 / 快闪 / 展会排期，带倒计时</div></div>
+        <button class="btn" data-panel-toggle="1" id="btnOpenShow">
+          <svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>加一场
+        </button>
+      </div>
+
+      <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+        <div class="kpi">
+          <div class="k-label">待开场次</div>
+          <div class="k-val" data-sp-bindable="database" data-sp-database-id="w0Dt2PM7GKpou6xH4lC4J6" id="kpiShowPending">0</div>
+          <div class="k-sub" id="kpiShowPendingSub">最近一场 —</div>
+        </div>
+        <div class="kpi exp">
+          <div class="k-label">待开场贩预算</div>
+          <div class="k-val" data-sp-bindable="database" data-sp-database-id="w0Dt2PM7GKpou6xH4lC4J6" id="kpiShowBudget">¥0</div>
+          <div class="k-sub">只为待开场次填过预算的部分</div>
+        </div>
+      </div>
+
+      <div class="card pad collapse" id="showFormWrap">
+        <div class="form-grid">
+          <div class="field full">
+            <label for="s-name">场贩名称 <span style="color:#c9564f">*</span></label>
+            <input autocomplete="off" id="s-name" name="show-name" placeholder="例：MAPPA15周年展" type="text">
+          </div>
+          <div class="field">
+            <label for="s-date">日期 <span style="color:#c9564f">*</span></label>
+            <input id="s-date" name="show-date" type="date">
+          </div>
+          <div class="field">
+            <label for="s-status">状态</label>
+            <select id="s-status" name="show-status"><option value>请选择</option></select>
+          </div>
+          <div class="field">
+            <label for="s-budget">预算 (¥)</label>
+            <input id="s-budget" inputmode="decimal" min="0" name="show-budget" placeholder="打算花多少" step="0.01" type="number">
+          </div>
+          <div class="field full">
+            <label for="s-note">备注</label>
+            <textarea id="s-note" name="show-note" placeholder="地点、代购、想收的角色…"></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn" id="btnSaveShow">保存场贩</button>
+          <button class="btn sec" id="btnResetShow">清空</button>
+        </div>
+      </div>
+
+      <div class="chips" id="showFilters" style="margin-bottom:12px">
+        <button class="chip is-on" data-sfilter="pending">待开</button>
+        <button class="chip" data-sfilter="all">全部</button>
+        <button class="chip" data-sfilter="past">已结束</button>
+      </div>
+
+      <div class="rows" id="showList"></div>
+      <div class="more-row" id="showMore"></div>
+    </section>
+
+  </main>
+
+  <nav class="tabbar" id="tabBar">
+    <button class="is-active" data-view="overview">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M3 13h6V3H3zM15 21h6V11h-6zM3 21h6v-4H3zM15 7h6V3h-6z"/></svg><span>概览</span>
+    </button>
+    <button data-view="consume">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h10"/></svg><span>消费</span>
+    </button>
+    <button data-view="transfer">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M17 3l4 4-4 4M21 7H8M7 21l-4-4 4-4M3 17h13"/></svg><span>转出</span>
+    </button>
+    <button data-view="show">
+      <svg class="ic" viewBox="0 0 24 24"><rect height="16" rx="2" width="18" x="3" y="5"/><path d="M8 3v4M16 3v4M3 11h18"/></svg><span>场贩</span>
+    </button>
+  </nav>
+</div>
+
+<div class="toast" id="toast"></div>
+<div aria-label="修改状态" class="pick-pop" id="pickPop" role="dialog"></div>
+<div aria-label="记录详情" aria-modal="true" class="modal-mask" id="detailMask" role="dialog">
+  <div class="modal" id="detailPop"></div>
+</div>
+<div aria-label="系列明细" aria-modal="true" class="modal-mask" id="seriesMask" role="dialog">
+  <div class="modal" id="seriesPop"></div>
+</div>
+<div aria-label="付款截图放大" class="shot-zoom" id="shotZoom" role="dialog"></div>
+<div aria-label="以前填过的系列" class="sug" hidden id="seriesSug" role="listbox"></div>
+<input accept=".json,application/json" hidden id="restoreFile" type="file">
+
+<script>
+(function () {
+  'use strict';
+
+  /* ============ 常量 ============ */
+  var DATABASE_ID = 'KU34G0iZ9mBABi7PHnyz6w';   // 谷子台账
+  var DB_SHOW     = 'w0Dt2PM7GKpou6xH4lC4J6';   // 场贩排期
+  var DRAFT_PREFIX = 'wb_guzi_draft_';
+
+  /* ---------- 宿主 SDK 访问 ----------
+     宿主的引导脚本会往页面注入 window.__SMART_PAGE__，但注入时机可能晚于本脚本，
+     也可能在注入时整体替换这个对象。因此**不缓存引用、每次调用现取**，
+     否则一旦拿的是过期引用，所有调用都会一直超时。
+     宿主自带的队列代理会把这些调用挂起，等真实现到位后自动补发。 */
+  var dbImpl = null;
+  function getDb() {
+    var sdk = window.__SMART_PAGE__;
+    var impl = sdk && sdk.database;
+    if (impl) return impl;
+    return LocalDB;   /* 独立版：无宿主注入时用本地存储引擎 */
+  }
+  /* 环境诊断：出问题时这些信息直接决定该修哪一头 */
+  var DIAG = { waited: 0, tries: 0, lastError: '' };
+  function envInfo() {
+    var inFrame = false;
+    try { inFrame = window.self !== window.top; } catch (e) { inFrame = true; }
+    return {
+      inFrame: inFrame,
+      hasLoader: !!window.__SMARTPAGE_LOADER__,
+      hasSdk: !!window.__SMART_PAGE__,
+      hasImpl: !!(window.__SMART_PAGE__ && window.__SMART_PAGE__.database),
+      href: String(location.href).slice(0, 120)
+    };
+  }
+
+  /* ============ 状态 ============ */
+  var STATE = {
+    ledger: [],
+    shows: [],
+    online: true,
+    fromCache: false,
+    loading: true,
+    view: 'overview',
+    showFilter: 'pending',
+    consumeLimit: 40,
+    transferLimit: 40,
+    showLimit: 60,
+    search: '',
+    filterChannel: '',
+    filterIp: '',
+    filterSeries: '',
+    filterShip: '',
+    sort: 'date-desc',
+    _ver: 0,        /* 第 43 轮：数据版本，derived 缓存与渲染指纹的失效依据 */
+    _fp: '',        /* 第 43 轮：当前数据的内容指纹（fetchAll 拉回的与它一致就视为没变） */
+    _q: ''          /* 第 43 轮：搜索词的小写缓存（input 事件里算一次，不再逐条转小写） */
+  };
+  var SCHEMA_OPTIONS = {};   // { 字段名: [{id, text}] }
+  var SCHEMA_FIELDS = [];    // 台账字段表（按数据表顺序）：[{name, type}]，详情编辑区按它生成
+  /* 第 40 轮：自己刚写完到「现在」这段时间内，忽略 onUpdated 的整表重拉（本地已增量更新） */
+  var SELF_WRITE_UNTIL = 0;
+  function markSelfWrite() { SELF_WRITE_UNTIL = Date.now() + 2500; }
+  /* 「谷子系列」筛选里"还没填系列"这一项的取值（系列名是用户自己起的，不可能叫这个） */
+  var SERIES_BLANK = '__blank__';
+  /* 「各系列消费合计」卡片上只留前几名，全部系列去弹层里看（弹层按 IP 分列） */
+  var SERIES_TOP = 3;
+
+  /* ============ 小工具 ============ */
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function yuan(n) {
+    var v = Number(n) || 0;
+    var neg = v < 0; v = Math.abs(v);
+    var s = v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    s = s.replace(/\.00$/, '');
+    return (neg ? '-¥' : '¥') + s;
+  }
+  function num(n) { var v = parseFloat(n); return isFinite(v) ? v : 0; }
+  function dayKey(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function todayKey() { return dayKey(new Date()); }
+  function parseDay(s) {
+    if (!s) return null;
+    var m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return null;
+    return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  }
+  function daysFromToday(s) {
+    var d = parseDay(s);
+    if (!d) return null;
+    var t = new Date(); t.setHours(0, 0, 0, 0);
+    d.setHours(0, 0, 0, 0);
+    return Math.round((d - t) / 86400000);
+  }
+  function md(s) {
+    var d = parseDay(s);
+    if (!d) return '';
+    return (d.getMonth() + 1) + '月' + d.getDate() + '日';
+  }
+  function toast(msg) {
+    var el = $('toast');
+    el.textContent = msg;
+    el.classList.add('on');
+    clearTimeout(el._t);
+    el._t = setTimeout(function () { el.classList.remove('on'); }, 2600);
+  }
+  /* 离线原因必须分清楚，否则用户看到一句"连不上"根本不知道该做什么：
+     cloud = 在工作台里但请求失败 → 可重试；local = 压根不在工作台环境里 → 重试也没用，得换链接打开 */
+  var OFFLINE_MSG = {
+    cloud: '数据表暂时连不上（已自动重试过几次）。点右侧「重试连接」可以立刻再试一次；你的输入已自动存成草稿，不会丢。',
+    local: '当前不在工作台环境里——宿主的数据表能力没有被注入，所以读写都用不了。独立版数据保存在本设备浏览器（IndexedDB）中，请定期用左下角「导出备份」存档。'
+  };
+  function diagLine() {
+    var e = envInfo();
+    var bits = [];
+    bits.push(e.inFrame ? 'iframe✓' : 'iframe✗');
+    bits.push(e.hasSdk ? 'SDK✓' : 'SDK✗');
+    bits.push(e.hasImpl ? 'DB✓' : 'DB✗');
+    if (DIAG.waited) bits.push('等待' + (DIAG.waited / 1000).toFixed(1) + 's');
+    if (DIAG.tries) bits.push('重试' + DIAG.tries + '次');
+    if (DIAG.lastError) bits.push('错误: ' + String(DIAG.lastError).slice(0, 80));
+    return bits.join(' · ');
+  }
+  function setSync(kind, text, reason) {
+    STATE.online = (kind !== 'off');
+    ['dot', 'dot2'].forEach(function (id) {
+      var el = $(id);
+      if (el) el.className = 'dot ' + (kind === 'on' ? 'on' : kind === 'off' ? 'off' : 'busy');
+    });
+    ['syncText', 'syncText2'].forEach(function (id) {
+      var el = $(id);
+      if (el) el.textContent = text;
+    });
+    $('offlineBanner').classList.toggle('on', kind === 'off');
+    if (kind === 'off') {
+      var t = $('offlineText');
+      if (t) t.textContent = OFFLINE_MSG[reason] || OFFLINE_MSG.cloud;
+      var d = $('offlineDiag');
+      if (d) d.textContent = diagLine();
+      var rb = $('btnRetry');
+      if (rb) { rb.disabled = false; rb.textContent = '重试连接'; }
+    }
+  }
+  function copyDiag() {
+    var txt = '谷子工作台诊断\n' + diagLine() + '\n地址: ' + envInfo().href;
+    var done = function () { toast('诊断信息已复制'); };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(done, done);
+        return;
+      }
+    } catch (e) { /* 降级到下面的方式 */ }
+    var ta = document.createElement('textarea');
+    ta.value = txt;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { toast(txt); }
+    document.body.removeChild(ta);
+  }
+
+
+  /* ============ 独立版本地存储引擎（不依赖任何平台） ============
+     实现 window.__SMART_PAGE__.database 的完整协议（7 个方法），
+     数据存 IndexedDB（本设备持久），多标签页通过 BroadcastChannel 互相同步。
+     测试/宿主若注入 window.__SMART_PAGE__ 则优先用注入实现。 */
+  var STANDALONE_SCHEMA = {"KU34G0iZ9mBABi7PHnyz6w": {"id": "KU34G0iZ9mBABi7PHnyz6w", "title": "谷子台账", "properties": [{"id": "谷子名称", "name": "谷子名称", "type": "text"}, {"id": "记录类型", "name": "记录类型", "type": "select", "config": {"options": [{"id": "消费", "text": "消费"}, {"id": "转出", "text": "转出"}]}}, {"id": "IP", "name": "IP", "type": "select", "config": {"options": [{"id": "咒术", "text": "咒术"}, {"id": "网王", "text": "网王"}, {"id": "坂本日常", "text": "坂本日常"}, {"id": "鬼灭", "text": "鬼灭"}, {"id": "其他", "text": "其他"}]}}, {"id": "角色", "name": "角色", "type": "text"}, {"id": "来源渠道", "name": "来源渠道", "type": "select", "config": {"options": [{"id": "拼团", "text": "拼团"}, {"id": "切煤", "text": "切煤"}, {"id": "小九卡社", "text": "小九卡社"}, {"id": "直播间", "text": "直播间"}, {"id": "闲鱼", "text": "闲鱼"}, {"id": "其他", "text": "其他"}]}}, {"id": "团名批次", "name": "团名批次", "type": "text"}, {"id": "金额", "name": "金额", "type": "currency", "config": {"currencySymbol": "¥", "decimalPlaces": 2}}, {"id": "到货状态", "name": "到货状态", "type": "select", "config": {"options": [{"id": "未出荷", "text": "未出荷"}, {"id": "已出荷", "text": "已出荷"}, {"id": "已排发", "text": "已排发"}]}}, {"id": "预计到货", "name": "预计到货", "type": "text"}, {"id": "付款日期", "name": "付款日期", "type": "date"}, {"id": "备注", "name": "备注", "type": "text"}, {"id": "谷子系列", "name": "谷子系列", "type": "text"}, {"id": "付款截图", "name": "付款截图", "type": "image"}]}, "w0Dt2PM7GKpou6xH4lC4J6": {"id": "w0Dt2PM7GKpou6xH4lC4J6", "title": "场贩排期", "properties": [{"id": "场贩名称", "name": "场贩名称", "type": "text"}, {"id": "日期", "name": "日期", "type": "date"}, {"id": "状态", "name": "状态", "type": "select", "config": {"options": [{"id": "待开", "text": "待开"}, {"id": "已开", "text": "已开"}, {"id": "已结束", "text": "已结束"}]}}, {"id": "预算", "name": "预算", "type": "currency", "config": {"currencySymbol": "¥", "decimalPlaces": 2}}, {"id": "备注", "name": "备注", "type": "text"}]}};
+  var LocalDB = (function () {
+    var DB_NAME = 'wb_guzi_standalone';
+    var STORES = { 'KU34G0iZ9mBABi7PHnyz6w': 'ledger', 'w0Dt2PM7GKpou6xH4lC4J6': 'shows' };
+    var connPromise = null, memMode = false;
+    var mem = { ledger: [], shows: [] };
+    var listeners = [];
+    var chan = null;
+    try { chan = new BroadcastChannel('wb_guzi_standalone'); } catch (e) { chan = null; }
+    if (chan) chan.onmessage = function (ev) {
+      var ids = (ev.data && ev.data.databaseIds) || [];
+      for (var i = 0; i < listeners.length; i++) { try { listeners[i]({ databaseIds: ids }); } catch (e2) {} }
+    };
+    function idb() {
+      if (connPromise) return connPromise;
+      connPromise = new Promise(function (resolve, reject) {
+        if (!window.indexedDB) { reject(new Error('no indexeddb')); return; }
+        var req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = function () {
+          Object.keys(STORES).forEach(function (k) {
+            if (!req.result.objectStoreNames.contains(STORES[k])) req.result.createObjectStore(STORES[k], { keyPath: 'record_id' });
+          });
+        };
+        req.onsuccess = function () { resolve(req.result); };
+        req.onerror = function () { reject(req.error || new Error('IndexedDB 打不开')); };
+        req.onblocked = function () { reject(new Error('IndexedDB 被其他标签页占用')); };
+      });
+      return connPromise.catch(function (e) { memMode = true; connPromise = null; throw e; });
+    }
+    function store(databaseId, mode, fn) {
+      return idb().then(function (conn) {
+        return new Promise(function (resolve, reject) {
+          var tx = conn.transaction(STORES[databaseId], mode, { durability: 'strict' });   /* 强持久化：抗进程强杀 */
+          var st = tx.objectStore(STORES[databaseId]);
+          var out = fn(st);
+          tx.oncomplete = function () { resolve(out && out.result !== undefined ? out.result : out); };
+          tx.onerror = function () { reject(tx.error || new Error('本地存储读写失败')); };
+          tx.onabort = function () { reject(tx.error || new Error('本地存储事务中止')); };
+        });
+      }).catch(function (err) {
+        if (!memMode) throw err;
+        return memOp(databaseId, mode, fn);   /* IndexedDB 不可用（隐私模式等）→ 内存兜底 */
+      });
+    }
+    function memOp(databaseId, mode, fn) {
+      var rows = mem[STORES[databaseId]];
+      var fake = {
+        getAll: function () { return { result: rows.slice() }; },
+        get: function (id) { var hit = null; rows.forEach(function (r) { if (String(r._id) === String(id)) hit = r; }); return { result: hit }; },
+        put: function (r) { var i = rows.findIndex(function (x) { return String(x._id) === String(r._id); }); if (i >= 0) rows[i] = r; else rows.push(r); return {}; },
+        'delete': function (id) { var i = rows.findIndex(function (x) { return String(x._id) === String(id); }); if (i >= 0) rows.splice(i, 1); return {}; }
+      };
+      var out = fn(fake);
+      return Promise.resolve(out && out.result !== undefined ? out.result : out);
+    }
+    function rowFromProps(props) {
+      var row = {};
+      Object.keys(props || {}).forEach(function (k) {
+        var v = props[k] || {};
+        if (v.text !== undefined) row[k] = v.text;
+        else if (v.select !== undefined) row[k] = v.select;
+        else if (v.currency !== undefined) row[k] = v.currency;
+        else if (v.date !== undefined) row[k] = v.date;
+        else if (v.number !== undefined) row[k] = v.number;
+        else if (v.image !== undefined) row[k] = v.image;
+      });
+      return row;
+    }
+    function notify(databaseId) {
+      if (chan) { try { chan.postMessage({ databaseIds: [databaseId] }); } catch (e) {} }
+    }
+    return {
+      isLocal: true,
+      query: function (p) {
+        /* 第 48 轮：改用 IDB 原生游标分页（lowerBound 严格大于页尾主键），
+           彻底消除「文本定位游标」在重复前缀 id 上的错位丢行问题 */
+        var size = Math.min(p.pageSize || 50, 200);
+        var runIdb = function () {
+          return idb().then(function (conn) {
+            return new Promise(function (resolve, reject) {
+              var tx = conn.transaction(STORES[p.databaseId], 'readonly', { durability: 'strict' });
+              var st = tx.objectStore(STORES[p.databaseId]);
+              var results = [], lastKey = null;
+              var range = p.startCursor ? IDBKeyRange.lowerBound(String(p.startCursor), true) : null;
+              var req = range ? st.openCursor(range) : st.openCursor();
+              req.onsuccess = function (e) {
+                var cur = e.target.result;
+                if (!cur || results.length >= size) {
+                  var hasMore = !!cur;
+                  resolve({ results: results, nextCursor: hasMore ? String(lastKey) : null, hasMore: hasMore });
+                  return;
+                }
+                results.push(cur.value);
+                lastKey = cur.key;
+                cur['continue']();
+              };
+              req.onerror = function () { reject(req.error || new Error('本地存储读取失败')); };
+            });
+          });
+        };
+        var runMem = function () {
+          var rows = mem[STORES[p.databaseId]].slice()
+            .sort(function (a, b) { return String(a._id) < String(b._id) ? -1 : (String(a._id) > String(b._id) ? 1 : 0); });
+          var start = 0;
+          if (p.startCursor) {
+            for (var i = 0; i < rows.length; i++) { if (String(rows[i]._id) === String(p.startCursor)) { start = i + 1; break; } }
+          }
+          var slice = rows.slice(start, start + size);
+          var end = start + slice.length;
+          return Promise.resolve({ results: slice, nextCursor: end < rows.length ? String(rows[end]._id) : null, hasMore: end < rows.length });
+        };
+        return idb().then(runIdb).catch(function (err) {
+          if (!memMode) throw err;
+          return runMem();
+        });
+      },
+      addRecord: function (p) {
+        var row = rowFromProps(p.properties);
+        var id = 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+        row.record_id = id; row._id = id;
+        return store(p.databaseId, 'readwrite', function (st) { st.put(row); }).then(function () { notify(p.databaseId); return { id: id }; });
+      },
+      updateRecord: function (p) {
+        return store(p.databaseId, 'readonly', function (st) { return st.get(String(p.recordId)); }).then(function (row) {
+          row = row || {};
+          var patch = rowFromProps(p.properties);
+          Object.keys(patch).forEach(function (k) { row[k] = patch[k]; });
+          row.record_id = String(p.recordId); row._id = String(p.recordId);
+          return store(p.databaseId, 'readwrite', function (st) { st.put(row); }).then(function () { notify(p.databaseId); return { id: row._id }; });
+        });
+      },
+      deleteRecord: function (p) {
+        return store(p.databaseId, 'readwrite', function (st) { st['delete'](String(p.recordId)); }).then(function () { notify(p.databaseId); return {}; });
+      },
+      getRecord: function (p) {
+        return store(p.databaseId, 'readonly', function (st) { return st.get(String(p.recordId)); }).then(function (row) {
+          return { record: row || null };
+        });
+      },
+      getSchema: function (p) {
+        return Promise.resolve(STANDALONE_SCHEMA[p.databaseId] || { id: p.databaseId, title: '', properties: [] });
+      },
+      uploadImage: function (p) {
+        var url = 'data:' + (p.contentType || 'image/jpeg') + ';base64,' + String(p.data || '');
+        return Promise.resolve({ url: url });
+      },
+      onUpdated: function (cb) { listeners.push(cb); return undefined; }
+    };
+  })();
+
+  /* ============ 数据层 ============ */
+  /* 统一取 SDK；未就绪时给出可诊断的拒绝，而不是 undefined 报错 */
+  function needDb() {
+    var impl = getDb();
+    if (!impl) return null;
+    return impl;
+  }
+  function sdkMissing() {
+    var err = new Error('宿主数据表能力未就绪' + (window.__SMART_PAGE__ ? '（SDK 已注入但 database 未到位）' : '（SDK 未注入）'));
+    err.code = 'SDK_NOT_READY';
+    return Promise.reject(err);
+  }
+  /* 注意：这里刻意用 `var db = needDb()` 这个写法（而不是别名），
+     因为 SDK 调用要能在静态检查里被识别成 db.<方法>(...)。
+     每次调用现取，才能接住"宿主晚注入 / 整体替换 SDK 对象"的情况。 */
+  function apiQuery(databaseId, startCursor) {
+    var db = needDb();
+    if (!db) return sdkMissing();
+    if (databaseId === DB_SHOW) {
+      return db.query({ databaseId: 'w0Dt2PM7GKpou6xH4lC4J6', pageSize: 200, startCursor: startCursor });
+    }
+    return db.query({ databaseId: DATABASE_ID, pageSize: 200, startCursor: startCursor });
+  }
+  function apiAdd(databaseId, props) {
+    var db = needDb();
+    if (!db) return sdkMissing();
+    if (databaseId === DB_SHOW) {
+      return db.addRecord({ databaseId: 'w0Dt2PM7GKpou6xH4lC4J6', properties: props });
+    }
+    return db.addRecord({ databaseId: DATABASE_ID, properties: props });
+  }
+  function apiUpdate(databaseId, recordId, props) {
+    var db = needDb();
+    if (!db) return sdkMissing();
+    if (databaseId === DB_SHOW) {
+      return db.updateRecord({ databaseId: 'w0Dt2PM7GKpou6xH4lC4J6', recordId: recordId, properties: props });
+    }
+    return db.updateRecord({ databaseId: DATABASE_ID, recordId: recordId, properties: props });
+  }
+  function apiDelete(databaseId, recordId) {
+    var db = needDb();
+    if (!db) return sdkMissing();
+    if (databaseId === DB_SHOW) {
+      return db.deleteRecord({ databaseId: 'w0Dt2PM7GKpou6xH4lC4J6', recordId: recordId });
+    }
+    return db.deleteRecord({ databaseId: DATABASE_ID, recordId: recordId });
+  }
+  function apiSchema(databaseId) {
+    var db = needDb();
+    if (!db) return sdkMissing();
+    if (databaseId === DB_SHOW) {
+      return db.getSchema({ databaseId: 'w0Dt2PM7GKpou6xH4lC4J6' });
+    }
+    return db.getSchema({ databaseId: DATABASE_ID });
+  }
+
+  function loadAll(databaseId, startCursor, acc, guard) {
+    acc = acc || [];
+    guard = guard || 0;
+    if (guard > 100) return Promise.resolve(acc);
+    return apiQuery(databaseId, startCursor).then(function (r) {
+      acc = acc.concat(r.results || []);
+      var next = r.nextCursor;
+      if (r.hasMore && next && next !== startCursor && (r.results || []).length) {
+        return loadAll(databaseId, next, acc, guard + 1);
+      }
+      return acc;
+    });
+  }
+  /* 离线读缓存：连不上时至少还能看到上次同步回来的数据，而不是一片空白 */
+  var CACHE_KEY = 'wb_guzi_cache';
+  function saveCache() {
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({
+        ts: Date.now(), ledger: STATE.ledger, shows: STATE.shows
+      }));
+    } catch (e) { /* 存不下就算了，不影响主流程 */ }
+  }
+  function loadCache() {
+    var raw = null;
+    try { raw = localStorage.getItem(CACHE_KEY); } catch (e) { return false; }
+    if (!raw) return false;
+    var o = null;
+    try { o = JSON.parse(raw); } catch (e) { return false; }
+    if (!o || !o.ledger) return false;
+    STATE.ledger = o.ledger || [];
+    STATE.shows = o.shows || [];
+    primeRows(STATE.ledger); primeRows(STATE.shows);
+    STATE._fp = dataFp(STATE.ledger, STATE.shows);
+    bumpVer();
+    STATE.fromCache = true;
+    STATE.loading = false;
+    return true;
+  }
+  function fetchAll() {
+    setSync('busy', '正在同步…');
+    return Promise.all([
+      loadAll(DATABASE_ID),
+      loadAll(DB_SHOW)
+    ]).then(function (res) {
+      var nl = res[0] || [], ns = res[1] || [];
+      primeRows(nl); primeRows(ns);
+      /* 第 43 轮：拉回的数据与手里这份指纹一致 → 视为没变，不 bump 版本
+         （衍生缓存、渲染指纹继续有效，随后的 refreshAll 会整页跳过重绘） */
+      var fp = dataFp(nl, ns);
+      STATE.ledger = nl;
+      STATE.shows = ns;
+      if (fp !== STATE._fp) { STATE._fp = fp; bumpVer(); }
+      STATE.loading = false;
+      STATE.fromCache = false;
+      DIAG.lastError = '';
+      saveCache();
+      setSync('on', '已保存 · 本设备存储');
+      return true;
+    }).catch(function (err) {
+      console.error('[database] 数据加载失败:', err);
+      DIAG.lastError = (err && (err.message || err)) + '';
+      STATE.loading = false;
+      loadCache();
+      setSync('off', '离线模式', window.__SMART_PAGE__ ? 'cloud' : 'local');
+      toast('本地存储暂时不可用，请重试或更换浏览器');
+      return false;
+    });
+  }
+
+  /* ============ 计算层 ============ */
+  function isSpend(r) { return r['记录类型'] !== '转出'; }
+
+  /* ---------- 第 43 轮 · 后端性能优化：数据版本 + 衍生缓存 ----------
+     优化前的三个热点：
+     ① 一次 refreshAll 里 spends() 被调 ~10 次（computeStats/byChannel/channelGroups/
+        bySeries/byIp/byMonth/seriesNames/seriesGap/navConsume），每次全表过滤，
+        各聚合又各自再遍历一遍 —— 一次刷新做 10+ 倍无用功；
+     ② 搜索时 matchesConsume 对每条记录现做「5 字段 join + toLowerCase」；
+     ③ 数据没变时（boot 先画缓存、再拉回相同数据；连续 refreshAll）仍全量重绘。
+     做法：STATE._ver 数据版本（本地增量 / 整表落库时 +1）；derived() 用「ver + 日期键」
+     缓存一次遍历算出的全部聚合；行数据预计算 __hay（搜索 haystack）；
+     fetchAll 内容指纹一致时不 bump 版本，refreshAll 各渲染函数按指纹跳过未变区域。
+     —— 对外函数签名与输出结构全部保持不变。 */
+  function bumpVer() { STATE._ver += 1; _DERIVED = null; }
+  function primeRow(r) {
+    if (!r) return r;
+    r.__hay = [r['谷子名称'], r['角色'], r['团名批次'], r['备注'], r['谷子系列']]
+      .join(' ').toLowerCase();
+    return r;
+  }
+  function primeRows(rows) { (rows || []).forEach(primeRow); }
+  /* 内容指纹：判断「这次拉回的数据和手里这份是否一模一样」；一致就不 bump 版本 */
+  function rowFp(r) {
+    var ks = Object.keys(r).filter(function (k) { return k !== '__hay'; }).sort();
+    return ks.map(function (k) { return k + '=' + JSON.stringify(r[k]); }).join('&');
+  }
+  function dataFp(ledger, shows) {
+    return (ledger || []).map(rowFp).join('\n') + '\u0001' + (shows || []).map(rowFp).join('\n');
+  }
+
+  var _DERIVED = null;
+  /* 一次遍历全表算出全部聚合（消费/转出拆分 + 统计 + 渠道 + 渠道团名 + IP + 系列 +
+     系列名清单 + 近 12 个月）；缓存键 = 数据版本 + 今天（「今日新增」「近 12 个月」都
+     跟着日期走，跨天自动重算 —— 每天最多一次全量遍历，成本可忽略） */
+  function derived() {
+    var day = todayKey();
+    if (_DERIVED && _DERIVED.ver === STATE._ver && _DERIVED.day === day) return _DERIVED;
+    var sp = [], tr = [];
+    STATE.ledger.forEach(function (r) { (isSpend(r) ? sp : tr).push(r); });
+    var tm = day.slice(0, 7);
+    var d = {
+      ver: STATE._ver, day: day, sp: sp, tr: tr,
+      stats: { total: 0, month: 0, spendCount: sp.length, transit: 0, transitCount: 0,
+               transferTotal: 0, transferCount: tr.length, net: 0 },
+      chans: {}, chanGroups: {}, ips: {}, series: {},
+      seriesNames: [], seriesGapMiss: 0, months: {},
+      yearTotal: 0   /* 第 44 轮：当年（今年）付款合计，随 ver/跨天自动重算 */
+    };
+    var now = new Date();
+    var yr = now.getFullYear();   /* 第 44 轮：当年付款合计用 */
+    for (var i = 11; i >= 0; i--) {
+      var dd = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      d.months[dd.getFullYear() + '-' + String(dd.getMonth() + 1).padStart(2, '0')] = 0;
+    }
+    var seenSeries = {};
+    sp.forEach(function (r) {
+      var a = num(r['金额']);
+      d.stats.total += a;
+      var pd = r['付款日期'] ? String(r['付款日期']) : '';
+      var ym = pd.slice(0, 7);
+      if (ym === tm) d.stats.month += a;
+      var st = r['到货状态'];
+      if (st === '未出荷' || st === '已出荷') { d.stats.transit += a; d.stats.transitCount += 1; }
+      if (ym in d.months) d.months[ym] += a;
+      if (ym.slice(0, 4) === String(yr)) d.yearTotal += a;   /* 当年付款合计（按付款日期归年，ym 是 YYYY-MM） */
+      var ch = r['来源渠道'] || '未填渠道';
+      var c = d.chans[ch] || (d.chans[ch] = { k: ch, v: 0, n: 0, add: 0 });
+      c.v += a; c.n += 1; if (pd.slice(0, 10) === day) c.add += a;
+      var cg = (d.chanGroups[ch] || (d.chanGroups[ch] = {}));
+      var g = String(r['团名批次'] || '').trim() || '未填团名';
+      var gg = cg[g] || (cg[g] = { k: g, v: 0, n: 0, add: 0 });
+      gg.v += a; gg.n += 1; if (pd.slice(0, 10) === day) gg.add += a;
+      var ip = r['IP'] || '未填';
+      d.ips[ip] = (d.ips[ip] || 0) + a;
+      var s = String(r['谷子系列'] || '').trim();
+      if (!s) { d.seriesGapMiss += 1; }
+      else {
+        var sg = d.series[s] || (d.series[s] = { k: s, v: 0, n: 0, add: 0 });
+        sg.v += a; sg.n += 1; if (pd.slice(0, 10) === day) sg.add += a;
+        if (!seenSeries[s]) { seenSeries[s] = 1; d.seriesNames.push(s); }
+      }
+    });
+    tr.forEach(function (r) { d.stats.transferTotal += num(r['金额']); });
+    d.stats.net = d.stats.total - d.stats.transferTotal;
+    /* 与旧 seriesNames() 一致的去重 + reverse（最近用过的排前面） */
+    d.seriesNames.reverse();
+    _DERIVED = d;
+    return d;
+  }
+
+  function spends() {
+    return derived().sp;
+  }
+  function transfers() {
+    return derived().tr;
+  }
+
+  function computeStats() {
+    return derived().stats;
+  }
+
+  /* 各渠道：v = 累计金额，n = 笔数，add = 今日新增金额（都只算消费，不含转出） */
+  function byChannel() {
+    return Object.keys(derived().chans).map(function (k) { return derived().chans[k]; })
+      .sort(function (a, b) { return b.v - a.v; });
+  }
+  /* 哪些渠道可以再按「团名批次」往下细分一层 */
+  var SPLIT_CHANNELS = { '拼团': 1 };
+  function channelGroups(ch) {
+    var m = derived().chanGroups[ch] || {};
+    return Object.keys(m).map(function (g) { return m[g]; })
+      .sort(function (a, b) { return b.v - a.v; });
+  }
+  function byIp() {
+    return Object.keys(derived().ips).map(function (k) { return { k: k, v: derived().ips[k] }; })
+      .sort(function (a, b) { return b.v - a.v; });
+  }
+  /* 各系列：按「谷子系列」字段汇总消费金额（只算消费，不含转出） */
+  function bySeries() {
+    return Object.keys(derived().series).map(function (k) { return derived().series[k]; })
+      .sort(function (a, b) { return b.v - a.v; });
+  }
+  /* 有多少笔消费还没填系列 —— 空态要用它说清去哪儿补 */
+  function seriesGap() {
+    var d = derived();
+    return { miss: d.seriesGapMiss, total: d.sp.length };
+  }
+  /* 某个系列下的消费 → 按 IP 分类（弹层专用，按需现算，不进热路径缓存） */
+  function seriesGroups(name) {
+    var m = {};
+    spends().forEach(function (r) {
+      if (String(r['谷子系列'] || '').trim() !== name) return;
+      var k = String(r['IP'] || '').trim() || '未填 IP';
+      if (!m[k]) m[k] = { k: k, v: 0, n: 0, rows: [] };
+      m[k].v += num(r['金额']); m[k].n += 1; m[k].rows.push(r);
+    });
+    return Object.keys(m).map(function (k) { return m[k]; })
+      .sort(function (a, b) { return b.v - a.v; });
+  }
+  /* 卡片上那行小字：这个系列花在哪个 IP —— 只有一个就写名字，多个就写个数 */
+  function seriesIpNote(groups) {
+    if (!groups.length) return '';
+    return groups.length > 1 ? groups.length + ' 个 IP' : groups[0].k;
+  }
+  /* 「全部系列」弹层的取数口径（弹层专用，按需现算） */
+  function seriesIpColumns() {
+    var m = {};
+    spends().forEach(function (r) {
+      var s = String(r['谷子系列'] || '').trim();
+      if (!s) return;
+      var k = String(r['IP'] || '').trim() || '未填 IP';
+      if (!m[k]) m[k] = { k: k, v: 0, n: 0, items: {} };
+      var a = num(r['金额']);
+      m[k].v += a; m[k].n += 1;
+      if (!m[k].items[s]) m[k].items[s] = { k: s, v: 0, n: 0 };
+      m[k].items[s].v += a; m[k].items[s].n += 1;
+    });
+    return Object.keys(m).map(function (k) {
+      var g = m[k];
+      g.list = Object.keys(g.items).map(function (s) { return g.items[s]; })
+        .sort(function (a, b) { return b.v - a.v; });
+      delete g.items;
+      return g;
+    }).sort(function (a, b) { return b.v - a.v; });
+  }
+  /* 所有用过的系列名（去重；最近用过的排前面，输入一个字就能挑出来） */
+  function seriesNames() {
+    return derived().seriesNames;
+  }
+  /* 「谷子系列」筛选下拉：选项跟着数据走（系列名是用户自己填的，schema 里没有） */
+  function fillFilterSeries() {
+    var el = $('cFilterSeries');
+    if (!el) return;
+    var keep = STATE.filterSeries;
+    var list = seriesNames().slice().sort(function (a, b) { return a.localeCompare(b, 'zh'); });
+    el.innerHTML = '<option value="">全部系列</option>' +
+      list.map(function (n) { return '<option value="' + esc(n) + '">' + esc(n) + '</option>'; }).join('') +
+      '<option value="' + SERIES_BLANK + '">未填系列</option>';
+    var hit = false;
+    for (var i = 0; i < el.options.length; i++) { if (el.options[i].value === keep) { hit = true; break; } }
+    el.value = hit ? keep : '';
+    STATE.filterSeries = el.value;
+  }
+  function byMonth() {
+    var m = derived().months;
+    return Object.keys(m).sort().map(function (k) { return { k: k, v: m[k] }; });
+  }
+
+  /* 第 31 轮：顶部那张「今日待办」卡片已按需求整块删掉（连 todayActions / renderToday / etaRank 一起清），
+     需要复活的话看 page/_backup_v29.html。 */
+
+  function matchesConsume(r) {
+    if (!isSpend(r)) return false;
+    /* 第 43 轮：haystack 与搜索词小写都预计算好了（行落库时 primeRow，输入时 _q），
+       逐条判断只剩一次 indexOf，不再每条记录 join+toLowerCase */
+    var q = STATE._q;
+    if (q && (r.__hay || '').indexOf(q) === -1) return false;
+    if (STATE.filterChannel && r['来源渠道'] !== STATE.filterChannel) return false;
+    if (STATE.filterIp && r['IP'] !== STATE.filterIp) return false;
+    if (STATE.filterSeries) {
+      var se = String(r['谷子系列'] || '').trim();
+      if (STATE.filterSeries === SERIES_BLANK) { if (se) return false; }
+      else if (se !== STATE.filterSeries) return false;
+    }
+    if (STATE.filterShip && r['到货状态'] !== STATE.filterShip) return false;
+    return true;
+  }
+  function sortRows(rows) {
+    var s = STATE.sort;
+    var out = rows.slice();
+    out.sort(function (a, b) {
+      if (s === 'amount-desc') return num(b['金额']) - num(a['金额']);
+      if (s === 'amount-asc') return num(a['金额']) - num(b['金额']);
+      var da = a['付款日期'] ? String(a['付款日期']) : '';
+      var dbb = b['付款日期'] ? String(b['付款日期']) : '';
+      if (s === 'date-asc') return (da || '9999') < (dbb || '9999') ? -1 : 1;
+      return (dbb || '') > (da || '') ? 1 : -1;
+    });
+    return out;
+  }
+
+  /* 预计到货文本 -> {y, m} 便于比较（例：9月中 / 10月 / 2027.1） */
+  function etaRank(s) {
+    if (!s) return null;
+    var t = String(s).trim();
+    var m = t.match(/(\d{4})[.\-年](\d{1,2})/);
+    if (m) return Number(m[1]) * 100 + Number(m[2]);
+    m = t.match(/(\d{1,2})\s*月/);
+    if (m) return (new Date()).getFullYear() * 100 + Number(m[1]);
+    return null;
+  }
+
+  /* 今天要处理：只读 STATE / 只挑「该动手」的事，不写任何数据 */
+  function todayActions() {
+    var out = [];
+    var nowRank = (new Date()).getFullYear() * 100 + (new Date().getMonth() + 1);
+
+    /* 1. 临近的场贩 */
+    STATE.shows.forEach(function (s) {
+      if (s['状态'] !== '待开') return;
+      var dd = daysFromToday(s['日期']);
+      if (dd === null || dd > 7) return;
+      out.push({
+        kind: '场贩', level: dd <= 3 ? 'urgent' : 'soon',
+        title: s['场贩名称'],
+        sub: dd < 0 ? ('已开 ' + (-dd) + ' 天，还没登记消费？')
+          : dd === 0 ? '就是今天开' : (dd + ' 天后开 · ' + md(s['日期'])),
+        act: '去看看', actKind: 'show', id: s._id
+      });
+    });
+
+    /* 2. 到货跟进：未到货且预计到货已过期/就在本月 */
+    spends().forEach(function (r) {
+      if (r['到货状态'] !== '未出荷') return;
+      var rk = etaRank(r['预计到货']);
+      if (rk === null) return;
+      if (rk > nowRank) return;
+      var overdue = rk < nowRank;
+      out.push({
+        kind: overdue ? '催货' : '到货',
+        level: overdue ? 'urgent' : 'soon',
+        title: r['谷子名称'],
+        sub: (r['预计到货'] ? '预计 ' + r['预计到货'] + ' 到货' : '未填预计到货')
+          + (overdue ? '，已过期，该催团长了' : '，就是本月'),
+        act: '改到货状态', actKind: 'arrived', id: r._id
+      });
+    });
+
+    var order = { urgent: 0, soon: 1, '': 2 };
+    out.sort(function (a, b) { return order[a.level] - order[b.level]; });
+    return out;
+  }
+
+  /* ============ 渲染层（互不调用，只读 STATE） ============ */
+  function renderToday() {
+    var acts = todayActions();
+    var pill = $('todayPill');
+    if (!pill) return;
+    pill.textContent = acts.length + ' 项';
+    pill.className = 'pill' + (acts.length ? '' : ' zero');
+    var list = $('todayList');
+    if (!acts.length) {
+      list.innerHTML = '<div class="empty">今天没有要处理的：没有临近的场贩，没有待补的款，在途的货也都还在预计时间内。</div>';
+      return;
+    }
+    var show = acts.slice(0, 6);
+    list.innerHTML = show.map(function (a) {
+      return '<div class="todo ' + a.level + '">' +
+        '<span class="todo-kind">' + esc(a.kind) + '</span>' +
+        '<div class="todo-main">' +
+          '<div class="todo-title">' + esc(a.title) + '</div>' +
+          '<div class="todo-sub">' + esc(a.sub) + '</div>' +
+        '</div>' +
+        '<button class="todo-act" data-act="' + esc(a.actKind) + '" data-id="' + esc(a.id) + '">' + esc(a.act) + '</button>' +
+      '</div>';
+    }).join('') + (acts.length > show.length
+      ? '<div class="todo-sub" style="padding:2px 4px">还有 ' + (acts.length - show.length) + ' 项，往下翻列表也能看到。</div>'
+      : '');
+  }
+
+  function renderOverview() {
+    var s = computeStats();
+    $('kpiTotal').textContent = yuan(s.total);
+    $('kpiTotalSub').textContent = '共 ' + s.spendCount + ' 笔';
+    $('kpiMonth').textContent = yuan(s.month);
+    var now = new Date();
+    $('kpiMonthSub').textContent = (now.getMonth() + 1) + ' 月至今';
+    $('kpiTransit').textContent = yuan(s.transit);
+    $('kpiTransitSub').textContent = '未到货 ' + s.transitCount + ' 件';
+    $('kpiTransfer').textContent = yuan(s.transferTotal);
+    $('kpiTransferSub').textContent = '共 ' + s.transferCount + ' 笔';
+    $('kpiNet').textContent = yuan(s.net);
+
+    /* 转出回本页顶部那排统计（照 trae 的 transfer-summary） */
+    $('kpiTransferTotal').textContent = yuan(s.transferTotal);
+    $('kpiTransferCount').textContent = String(s.transferCount);
+    $('kpiTransferSpend').textContent = yuan(s.total);
+    $('kpiRecoverRate').textContent = s.total > 0
+      ? (s.transferTotal / s.total * 100).toFixed(1) + '%' : '0%';
+    $('kpiTransferNet').textContent = yuan(s.total - s.transferTotal);
+
+    var ch = byChannel();
+    var chCols = ['#5da1da', '#54b091', '#f0b86e', '#c49bce', '#5fb5b9', '#3a86cc'];
+    var chTotal = ch.reduce(function (a, b) { return a + b.v; }, 0);
+    var chView = ch.map(function (d, i) {
+      return {
+        d: d, i: i,
+        subs: SPLIT_CHANNELS[d.k] ? channelGroups(d.k) : null,
+        pct: chTotal ? (d.v / chTotal * 100).toFixed(0) : 0
+      };
+    });
+
+    $('hintChanSum').textContent = ch.length
+      ? '累计 ' + yuan(chTotal) + ' · 共 ' + ch.length + ' 个渠道'
+      : '还没有消费记录';
+    $('chanSum').innerHTML = chView.map(function (x) {
+      var d = x.d, subs = x.subs;
+      var row = '<div class="cs-row' + (subs ? ' is-split' : '') + '"' +
+        (subs ? ' data-chsplit="' + esc(d.k) + '" title="点一下看团名明细"' : '') + '>' +
+        '<span class="sw" style="background:' + chCols[x.i % chCols.length] + '"></span>' +
+        '<span class="cn"><span class="nm" title="' + esc(d.k) + '">' + esc(d.k) + '</span>' +
+        '<span class="cs-meta">' + d.n + ' 笔 · 占比 ' + x.pct + '%</span></span>' +
+        '<span class="amt"><b>' + yuan(d.v) + '</b>' +
+        (d.add > 0 ? '<span class="d-add">今日 +' + yuan(d.add) + '</span>' : '') + '</span>' +
+        (subs ? '<span class="caret"></span>' : '') +
+        '</div>';
+      if (!subs) return '<li class="cs-ch">' + row + '</li>';
+      /* 第 44 轮：团名明细默认收起（去掉默认 is-open），点行展开/再点收起 */
+      return '<li class="cs-ch">' + row +
+        '<ul class="cs-subs">' + subs.map(function (g) {
+          return '<li><span class="nm" title="' + esc(g.k) + '">' + esc(g.k) + '</span>' +
+            '<span class="amt">' +
+            (g.add > 0 ? '<span class="d-add">今日 +' + yuan(g.add) + '</span>' : '') +
+            '<b>' + yuan(g.v) + '</b><i>' + g.n + ' 笔</i></span></li>';
+        }).join('') + '</ul></li>';
+    }).join('') || '<li class="cs-empty">还没有消费记录</li>';
+
+    $('chartIp').innerHTML = barList(byIp());
+
+    /* 各系列消费合计：按「谷子系列」字段汇总，只算消费 */
+    var se = bySeries();
+    var seTotal = se.reduce(function (a, b) { return a + b.v; }, 0);
+    var gap = seriesGap();
+    $('hintSeries').textContent = se.length
+      ? '累计 ' + yuan(seTotal) + ' · 共 ' + se.length + ' 个系列 · 点开看全部'
+      : '按「谷子系列」汇总累计消费';
+    var seCols = ['#5da1da', '#54b091', '#f0b86e', '#c49bce', '#5fb5b9', '#3a86cc'];
+    /* 卡片上只留前三行；要看全部系列（按 IP 分列）点标题或末尾那行，走弹层，不把卡片拉长 */
+    var seTop = se.slice(0, SERIES_TOP);
+    var seRest = Math.max(0, se.length - SERIES_TOP);
+    $('seriesSum').innerHTML = se.length ? seTop.map(function (d, i) {
+      var pct = seTotal ? (d.v / seTotal * 100).toFixed(0) : 0;
+      var note = seriesIpNote(seriesGroups(d.k));
+      return '<li class="cs-ch">' +
+        '<div class="cs-row is-click" data-series="' + esc(d.k) + '" ' +
+        'title="点一下看「' + esc(d.k) + '」按 IP 的明细">' +
+        '<span class="sw" style="background:' + seCols[i % seCols.length] + '"></span>' +
+        '<span class="cn"><span class="nm" title="' + esc(d.k) + '">' + esc(d.k) + '</span>' +
+        '<span class="cs-meta">' + d.n + ' 笔 · 占比 ' + pct + '%' +
+        (note ? ' · ' + esc(note) : '') + '</span></span>' +
+        '<span class="amt">' + (d.add > 0 ? '<span class="d-add">今日 +' + yuan(d.add) + '</span>' : '') +
+        '<b>' + yuan(d.v) + '</b></span>' +
+        '</div></li>';
+    }).join('') + (seRest
+      ? '<li class="cs-more" data-sall="1" title="点这里看全部系列（按 IP 分列）">' +
+        '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>' +
+        '<span class="m-txt">看全部 ' + se.length + ' 个系列</span></li>'
+      : '')
+      : '<li class="cs-empty">' + (gap.total
+        ? '还没有填过「谷子系列」。点开任意一条消费记录，在「谷子系列」那一栏填上（例：幻影夜行 / 极乐汤），这里就会按系列汇总；还没填的有 ' + gap.miss + ' 笔。'
+        : '还没有消费记录') + '</li>';
+
+    /* 未填系列的进度提示：已开始填、但还有遗漏时才出现，给用户补填的抓手 */
+    var tip = $('seriesGapTip');
+    if (se.length && gap.miss > 0) {
+      tip.hidden = false;
+      tip.textContent = '还有 ' + gap.miss + ' 笔消费记录没填「谷子系列」。点开任意一条记录，在「谷子系列」那一栏补上，这里就会自动归到一起。';
+    } else if (se.length && gap.total > 0) {
+      tip.hidden = false;
+      tip.textContent = '全部 ' + gap.total + ' 笔消费记录都已填好系列，共 ' + se.length + ' 个系列。';
+    } else {
+      tip.hidden = true;
+      tip.textContent = '';
+    }
+
+    $('chartMonth').innerHTML = monthChart(byMonth());
+    /* 第 44 轮：当年付款合计（跟数据版本走，保存/同步后自动刷新） */
+    $('chartYearTotal').textContent = ' · ' + now.getFullYear() + ' 年已付 ' + yuan(derived().yearTotal);
+  }
+
+  /* 第 36 轮：各 IP 的投入 — 条形配色照参考图（5 色循环，每条从浅到深横向渐变） */
+  var BAR_RAMP = [
+    ['#8abee6', '#5da1da'],
+    ['#7cc4a9', '#54b091'],
+    ['#8fcdd0', '#5fb5b9'],
+    ['#f5c789', '#f0b86e'],
+    ['#d4b8db', '#c49bce']
+  ];
+  function barList(rows) {
+    if (!rows.length) return '<div class="empty">还没有消费记录</div>';
+    var max = rows.reduce(function (a, b) { return Math.max(a, b.v); }, 1);
+    return '<div class="bars">' + rows.map(function (d, i) {
+      var ramp = BAR_RAMP[i % BAR_RAMP.length];
+      return '<div class="bar-row"><span title="' + esc(d.k) + '" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
+        esc(d.k) + '</span>' +
+        '<span class="bar-track"><span class="bar-fill" style="width:' + (d.v / max * 100).toFixed(1) +
+        '%;background:linear-gradient(90deg,' + ramp[0] + ',' + ramp[1] + ')"></span></span>' +
+        '<span class="bv">' + yuan(d.v) + '</span></div>';
+    }).join('') + '</div>';
+  }
+  function monthChart(rows) {
+    var hasData = rows.some(function (d) { return d.v > 0; });
+    if (!hasData) return '<div class="empty">这段时间还没有带付款日期的消费记录</div>';
+    var W = 640, H = 170, padL = 8, padB = 26, padT = 14;
+    var max = rows.reduce(function (a, b) { return Math.max(a, b.v); }, 1);
+    var bw = (W - padL * 2) / rows.length;
+    var bars = '', labels = '', grid = '';
+    for (var g = 0; g <= 3; g++) {
+      var y = padT + (H - padT - padB) * g / 3;
+      grid += '<line x1="' + padL + '" y1="' + y.toFixed(1) + '" x2="' + (W - padL) + '" y2="' + y.toFixed(1) +
+        '" stroke="#eef5fc" stroke-width="1"></line>';
+    }
+    rows.forEach(function (d, i) {
+      var h = (d.v / max) * (H - padT - padB);
+      var x = padL + i * bw + bw * 0.18;
+      var w = bw * 0.64;
+      var y = H - padB - h;
+      var isThis = i === rows.length - 1;
+      bars += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + w.toFixed(1) + '" height="' +
+        Math.max(h, d.v > 0 ? 2 : 0).toFixed(1) + '" rx="3" fill="' + (isThis ? '#2b6fb5' : '#3a86cc') + '"></rect>';
+      if (d.v > 0) {
+        bars += '<text x="' + (x + w / 2).toFixed(1) + '" y="' + (y - 4).toFixed(1) +
+          '" text-anchor="middle" font-size="9.5" fill="#8398a8">' + Math.round(d.v) + '</text>';
+      }
+      labels += '<text x="' + (x + w / 2).toFixed(1) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="10" fill="#8398a8">' +
+        (Number(d.k.slice(5)) + '月') + '</text>';
+    });
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" height="180" role="img" aria-label="月度消费走势">' +
+      grid + bars + labels + '</svg>';
+  }
+
+  function tag(text, cls) {
+    if (!text) return '';
+    return '<span class="tag ' + cls + '">' + esc(text) + '</span>';
+  }
+
+  /* 可点击的状态标签：点一下就能改（到货状态） */
+  function tapTag(text, cls, id, field) {
+    if (!text) return '';
+    return '<button type="button" class="tag tap ' + cls + '" data-cact="stat" data-id="' + id +
+      '" data-field="' + esc(field) + '" title="点击修改' + esc(field) + '">' + esc(text) + '</button>';
+  }
+
+  /* 付款金额 / 付款日期 表头按钮的排序箭头 */
+  function syncSortHead() {
+    var heads = document.querySelectorAll('#consumeHead .th-btn');
+    Array.prototype.forEach.call(heads, function (b) {
+      var key = b.getAttribute('data-sort');
+      var on = STATE.sort.indexOf(key + '-') === 0;
+      var asc = on && STATE.sort.indexOf('-asc') > 0;
+      b.classList.toggle('is-on', on);
+      b.classList.toggle('is-asc', asc);
+      b.setAttribute('aria-sort', on ? (asc ? 'ascending' : 'descending') : 'none');
+      b.title = on
+        ? (asc ? '当前：' + (key === 'amount' ? '金额从低到高' : '由早到晚') + '，点一下换个方向'
+               : '当前：' + (key === 'amount' ? '金额从高到低' : '由晚到早') + '，点一下换个方向')
+        : (key === 'amount' ? '点一下按付款金额排序' : '点一下按付款日期排序');
+    });
+  }
+
+  function renderConsume() {
+    syncSortHead();
+    var all = sortRows(STATE.ledger.filter(matchesConsume));
+    var rows = all.slice(0, STATE.consumeLimit);
+    var sum = rows.reduce(function (a, r) { return a + num(r['金额']); }, 0);
+    $('consumeHint').textContent = '筛选出 ' + all.length + ' 条 · 合计 ' + yuan(sum);
+    $('navConsume').textContent = spends().length;
+    $('consumeFoot').textContent = '显示 ' + rows.length + ' / ' + all.length + ' 条';
+    $('consumeFootSum').textContent = all.length ? '合计 ' + yuan(sum) : '';
+    var list = $('consumeList');
+    if (!all.length) {
+      list.innerHTML = '<tr><td colspan="11" class="empty">' +
+        (STATE.loading ? '正在加载…' : '没有符合条件记录。换个筛选条件，或者点右上角「记一笔」。') + '</td></tr>';
+      $('consumeMore').innerHTML = '';
+      return;
+    }
+    list.innerHTML = rows.map(function (r) {
+      var rid = esc(r._id);
+      var ip = r['IP'];
+      var ch = r['来源渠道'];
+      var grp = r['团名批次'] && r['团名批次'] !== ch ? r['团名批次'] : '';
+      var eta = r['预计到货'];
+      return '<tr class="is-click" data-detail="' + rid + '" title="点一下看详情">' +
+        '<td class="nm">' + esc(r['谷子名称']) + '</td>' +
+        '<td>' + (ip ? tag(ip, 'ip ip-' + ip) : '<span class="mut">—</span>') + '</td>' +
+        '<td>' + (r['谷子系列'] ? esc(r['谷子系列']) : '<span class="mut">—</span>') + '</td>' +
+        '<td class="col-opt">' + (r['角色'] ? esc(r['角色']) : '<span class="mut">—</span>') + '</td>' +
+        '<td>' + [
+          ch ? tag(ch, 'ch ch-' + ch) : '',
+          grp ? tag(grp, 'grp') : ''
+        ].join('') + (ch || grp ? '' : '<span class="mut">—</span>') + '</td>' +
+        '<td class="amt">' + yuan(r['金额']) + '</td>' +
+        '<td>' + (r['付款日期'] ? md(r['付款日期']) : '<span class="mut">—</span>') + '</td>' +
+        '<td>' + (r['到货状态']
+          ? tapTag(r['到货状态'], 'st-' + r['到货状态'], rid, '到货状态')
+          : '<span class="tag st-未填">未填</span>') + '</td>' +
+        '<td>' + (eta ? esc(eta) : '<span class="mut">—</span>') + '</td>' +
+        '<td class="col-opt cell-note" title="' + esc(r['备注'] || '') + '">' +
+          (r['备注'] ? esc(r['备注']) : '<span class="mut">—</span>') + '</td>' +
+        '<td class="cell-acts">' +
+          '<button class="mini del" data-cact="del" data-id="' + rid + '">删除</button>' +
+        '</td>' +
+      '</tr>';
+    }).join('');
+    $('consumeMore').innerHTML = all.length > rows.length
+      ? '<button class="btn sec sm" id="btnMoreConsume">还有 ' + (all.length - rows.length) + ' 条，点这里继续看</button>'
+      : '';
+  }
+
+  function renderTransfer() {
+    var tr = transfers().slice().sort(function (a, b) {
+      return String(b['付款日期'] || '') > String(a['付款日期'] || '') ? 1 : -1;
+    });
+    $('navTransfer').textContent = tr.length;
+    var rows = tr.slice(0, STATE.transferLimit);
+    var sum = rows.reduce(function (a, r) { return a + num(r['金额']); }, 0);
+    $('transferFoot').textContent = '显示 ' + rows.length + ' / ' + tr.length + ' 条';
+    $('transferFootSum').textContent = tr.length ? '合计 +' + yuan(sum) : '';
+    var list = $('transferList');
+    if (!tr.length) {
+      list.innerHTML = '<tr><td colspan="7" class="empty">还没有转出记录。把出掉的谷子记一笔，净支出会立刻更新。</td></tr>';
+      $('transferMore').innerHTML = '';
+      return;
+    }
+    list.innerHTML = rows.map(function (r) {
+      var rid = esc(r._id);
+      var ip = r['IP'];
+      var ch = r['来源渠道'];
+      var grp = r['团名批次'] && r['团名批次'] !== ch ? r['团名批次'] : '';
+      return '<tr class="is-click" data-detail="' + rid + '" title="点一下看详情">' +
+        '<td class="nm">' + esc(r['谷子名称']) + '</td>' +
+        '<td>' + (ip ? tag(ip, 'ip ip-' + ip) : '<span class="mut">—</span>') + '</td>' +
+        '<td class="amt inc">+' + yuan(r['金额']) + '</td>' +
+        '<td>' + (r['付款日期'] ? md(r['付款日期']) : '<span class="mut">—</span>') + '</td>' +
+        '<td class="col-opt">' + [
+          ch ? tag(ch, 'ch ch-' + ch) : '',
+          grp ? tag(grp, 'grp') : ''
+        ].join('') + (ch || grp ? '' : '<span class="mut">—</span>') + '</td>' +
+        '<td class="col-opt cell-note" title="' + esc(r['备注'] || '') + '">' +
+          (r['备注'] ? esc(r['备注']) : '<span class="mut">—</span>') + '</td>' +
+        '<td class="cell-acts">' +
+          '<button class="mini del" data-tact="del" data-id="' + rid + '">删除</button>' +
+        '</td>' +
+      '</tr>';
+    }).join('');
+    $('transferMore').innerHTML = tr.length > rows.length
+      ? '<button class="btn sec sm" id="btnMoreTransfer">还有 ' + (tr.length - rows.length) + ' 条</button>' : '';
+  }
+
+  function renderShows() {
+    var f = STATE.showFilter;
+    var all = STATE.shows.slice().sort(function (a, b) {
+      return String(a['日期'] || '') < String(b['日期'] || '') ? -1 : 1;
+    });
+    var rows = all.filter(function (s) {
+      if (f === 'pending') return s['状态'] === '待开';
+      if (f === 'past') return s['状态'] === '已结束';
+      return true;
+    });
+    if (f === 'all') rows = rows.slice().sort(function (a, b) {
+      var da = daysFromToday(a['日期']), dbb = daysFromToday(b['日期']);
+      if (da === null || dbb === null) return 0;
+      var fa = da < 0 ? 1 : 0, fb = dbb < 0 ? 1 : 0;
+      if (fa !== fb) return fa - fb;
+      return da - dbb;
+    });
+
+    var pending = STATE.shows.filter(function (s) { return s['状态'] === '待开'; });
+    var budget = pending.reduce(function (a, s) { return a + num(s['预算']); }, 0);
+    $('kpiShowPending').textContent = String(pending.length);
+    $('kpiShowBudget').textContent = yuan(budget);
+    $('navShow').textContent = pending.length;
+
+    var nextTxt = '暂无待开场次';
+    if (pending.length) {
+      var sorted = pending.slice().sort(function (a, b) {
+        return String(a['日期'] || '') < String(b['日期'] || '') ? -1 : 1;
+      });
+      var dd = daysFromToday(sorted[0]['日期']);
+      nextTxt = '最近一场 ' + md(sorted[0]['日期']) +
+        (dd === null ? '' : dd > 0 ? '（' + dd + ' 天后）' : dd === 0 ? '（就是今天）' : '（已开）');
+    }
+    $('kpiShowPendingSub').textContent = nextTxt;
+    $('showHint').textContent = '共 ' + all.length + ' 场 · 待开 ' + pending.length + ' 场';
+
+    var list = $('showList');
+    var showRows = rows.slice(0, STATE.showLimit);
+    if (!rows.length) {
+      list.innerHTML = '<div class="empty">这里还没有场贩。点「加一场」把下一个要蹲的场贩记上，到日子它会自动提醒你。</div>';
+      $('showMore').innerHTML = '';
+      return;
+    }
+    list.innerHTML = showRows.map(function (s) {
+      var dd = daysFromToday(s['日期']);
+      var badge, cls = '';
+      if (s['状态'] === '待开') {
+        if (dd === null) { badge = '待开'; cls = 'soon'; }
+        else if (dd < 0) { badge = '已开 ' + (-dd) + ' 天'; cls = 'hot'; }
+        else if (dd === 0) { badge = '今天开'; cls = 'hot'; }
+        else if (dd <= 3) { badge = dd + ' 天后开'; cls = 'hot'; }
+        else { badge = dd + ' 天后开'; cls = 'soon'; }
+      } else if (s['状态'] === '已结束') { badge = '已结束'; cls = 'node'; }
+      else { badge = s['状态'] || '未标状态'; cls = 'soon'; }
+      var chips = [tag(s['状态'] || '未标状态', 'st-' + (s['状态'] === '待开' ? '未出荷' : s['状态'] === '已结束' ? '已到货' : '已排发'))];
+      if (s['预算']) chips.push(tag('预算 ' + yuan(s['预算']), 'grp'));
+      return '<div class="row-item">' +
+        '<div class="r-main">' +
+          '<div class="r-title">' + esc(s['场贩名称']) + '</div>' +
+          '<div class="r-meta">' + tag(badge, cls) + chips.join('') +
+            tag(md(s['日期']) || '无日期', 'node') + '</div>' +
+          (s['备注'] ? '<div class="r-note">' + esc(s['备注']) + '</div>' : '') +
+        '</div>' +
+        '<div class="r-side">' +
+          '<div class="row-acts">' +
+            (s['状态'] === '待开'
+              ? '<button class="mini" data-sact="done" data-id="' + esc(s._id) + '">标记结束</button>'
+              : '<button class="mini" data-sact="reopen" data-id="' + esc(s._id) + '">改回待开</button>') +
+            '<button class="mini" data-sact="spend" data-id="' + esc(s._id) + '">记消费</button>' +
+            '<button class="mini del" data-sact="del" data-id="' + esc(s._id) + '">删除</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+    $('showMore').innerHTML = rows.length > showRows.length
+      ? '<button class="btn sec sm" id="btnMoreShow">还有 ' + (rows.length - showRows.length) + ' 场</button>' : '';
+  }
+
+  /* ============ 统一刷新入口（唯一调度点） ============ */
+  /* 渲染指纹 —— 当前视图按「数据版本 + 相关 UI 状态 + 日期键」判定，
+     指纹没变就整块跳过重绘；尚未打开的视图留到切换时首次生成。
+     注意：事件路径（搜索/筛选/排序/加载更多）是直接调单个 render 函数，不走这里，
+     指纹只影响 refreshAll 调度，不会拦下用户操作的即时渲染。 */
+  var _RENDER_FP = {};
+  function renderDue(name, fp) {
+    if (_RENDER_FP[name] === fp) return false;
+    _RENDER_FP[name] = fp;
+    return true;
+  }
+  function refreshAll() {
+    var ver = STATE._ver, day = todayKey(), tm = day.slice(0, 7);
+    /* 侧栏数量始终更新；未打开的视图等切换时再生成 DOM，减轻首屏主线程负担。 */
+    if (renderDue('nav', ver)) {
+      $('navConsume').textContent = spends().length;
+      $('navTransfer').textContent = transfers().length;
+      $('navShow').textContent = STATE.shows.filter(function (s) { return s['状态'] === '待开'; }).length;
+    }
+    if (STATE.view === 'overview') {
+      if (renderDue('today', ver + '\u0001' + day)) renderToday();
+      if (renderDue('overview', ver + '\u0001' + tm)) renderOverview();
+    } else if (STATE.view === 'consume') {
+      if (renderDue('filterSeries', ver + '\u0001' + STATE.filterSeries)) fillFilterSeries();
+      if (renderDue('consume', [ver, STATE._q, STATE.filterChannel, STATE.filterIp,
+          STATE.filterSeries, STATE.filterShip, STATE.sort, STATE.consumeLimit].join('\u0001'))) renderConsume();
+    } else if (STATE.view === 'transfer') {
+      if (renderDue('transfer', ver + '\u0001' + STATE.transferLimit)) renderTransfer();
+    } else if (STATE.view === 'show') {
+      if (renderDue('shows', [ver, STATE.showFilter, STATE.showLimit, day].join('\u0001'))) renderShows();
+    }
+  }
+
+  /* ---------- 本地增量更新（第 40 轮：保存后不再全量重拉） ----------
+     保存成功后直接改内存里的这条记录并按需重排，随后 refreshAll() 用新数据重画，
+     省掉一次「整表重拉」的网络往返 —— 这是保存慢的主因。
+     idx：可选的已有下标（更新时传，避免全表扫描）。 */
+  var ROW_FIELDS = ['谷子名称', '记录类型', 'IP', '角色', '来源渠道', '团名批次', '谷子系列', '金额', '到货状态', '预计到货', '付款日期', '备注'];
+  function propsToRow(props) {
+    var row = {};
+    Object.keys(props || {}).forEach(function (k) {
+      var v = props[k] || {};
+      if (v.text !== undefined) row[k] = v.text;
+      else if (v.currency !== undefined) row[k] = v.currency;
+      else if (v.date !== undefined) row[k] = v.date;
+      else if (v.select !== undefined) row[k] = optionText(k, v.select);   /* 存文案，跟线上读回来的一致 */
+      else if (v.number !== undefined) row[k] = v.number;
+      else if (v.image !== undefined) row[k] = v.image;   /* 截图字段：详情读的是 {images:[…]}，照原样存 */
+    });
+    return row;
+  }
+  function sortLedger() {
+    /* 与线上取回顺序保持一致的兜底：按付款日期倒序（无日期排最后） */
+    STATE.ledger.sort(function (a, b) {
+      var da = String(a['付款日期'] || ''), db = String(b['付款日期'] || '');
+      if (da === db) return 0;
+      if (!da) return 1;
+      if (!db) return -1;
+      return da < db ? 1 : -1;
+    });
+  }
+  /* 新增记录返回的 id 字段名各环境不一（id / recordId / _id），统一取一下 */
+  function addedId(res) {
+    return (res && (res.id || res.recordId || res.record_id || res._id)) || ('local_' + Date.now());
+  }
+  function patchLocalAdd(recordId, props) {
+    /* 某些宿主实现会在本地状态里也补一条（或触发 onUpdated），先按 id 去重再加 */
+    var existing = indexOfRecord(recordId);
+    var row = primeRow(propsToRow(props));
+    row.record_id = recordId;
+    row._id = recordId;
+    if (existing >= 0) {
+      Object.keys(row).forEach(function (k) { STATE.ledger[existing][k] = row[k]; });
+    } else {
+      STATE.ledger.push(row);
+    }
+    sortLedger();
+    bumpVer();
+    STATE._fp = dataFp(STATE.ledger, STATE.shows);
+    saveCache();
+    markSelfWrite();
+  }
+  function patchLocalUpdate(idx, props) {
+    if (idx < 0 || idx >= STATE.ledger.length) return false;
+    var row = propsToRow(props);
+    Object.keys(row).forEach(function (k) { STATE.ledger[idx][k] = row[k]; });
+    primeRow(STATE.ledger[idx]);   /* __hay 必须按赋值后的整行重算（props 只含改动字段） */
+    sortLedger();
+    bumpVer();
+    STATE._fp = dataFp(STATE.ledger, STATE.shows);
+    saveCache();
+    markSelfWrite();
+    return true;
+  }
+  /* 第 43 轮：删除也走本地增量（不再整表重拉）。idx 来自 indexOfRecord / indexOfShow */
+  function patchLocalDelete(idx) {
+    if (idx < 0 || idx >= STATE.ledger.length) return false;
+    STATE.ledger.splice(idx, 1);
+    bumpVer();
+    STATE._fp = dataFp(STATE.ledger, STATE.shows);
+    saveCache();
+    markSelfWrite();
+    return true;
+  }
+  function indexOfShow(id) {
+    for (var i = 0; i < STATE.shows.length; i++) {
+      if (STATE.shows[i].record_id === id || STATE.shows[i]._id === id) return i;
+    }
+    return -1;
+  }
+  function patchShowUpdate(idx, props) {
+    if (idx < 0 || idx >= STATE.shows.length) return false;
+    var row = propsToRow(props);
+    Object.keys(row).forEach(function (k) { STATE.shows[idx][k] = row[k]; });
+    primeRow(STATE.shows[idx]);
+    bumpVer();
+    STATE._fp = dataFp(STATE.ledger, STATE.shows);
+    saveCache();
+    markSelfWrite();
+    return true;
+  }
+  function patchShowDelete(idx) {
+    if (idx < 0 || idx >= STATE.shows.length) return false;
+    STATE.shows.splice(idx, 1);
+    bumpVer();
+    STATE._fp = dataFp(STATE.ledger, STATE.shows);
+    saveCache();
+    markSelfWrite();
+    return true;
+  }
+  /* 第 46 轮：场贩新增统一补丁（与 patchLocalAdd 对称）。
+     修的 bug：submitShow 原来手写 STATE.shows.push + saveCache，缺 bumpVer（渲染指纹
+     不失效 → refreshAll 跳过 renderShows，列表不更新，要整页刷新才出现）和
+     markSelfWrite（宿主 onUpdated 不在静默期内）。所有本地补丁必须走 patch* 函数。 */
+  function patchShowAdd(recordId, props) {
+    var existing = indexOfShow(recordId);
+    var row = primeRow(propsToRow(props));
+    row.record_id = recordId;
+    row._id = recordId;
+    if (existing >= 0) {
+      Object.keys(row).forEach(function (k) { STATE.shows[existing][k] = row[k]; });
+    } else {
+      STATE.shows.push(row);
+    }
+    bumpVer();
+    STATE._fp = dataFp(STATE.ledger, STATE.shows);
+    saveCache();
+    markSelfWrite();
+  }
+  function indexOfRecord(id) {
+    for (var i = 0; i < STATE.ledger.length; i++) {
+      if (STATE.ledger[i].record_id === id || STATE.ledger[i]._id === id) return i;
+    }
+    return -1;
+  }
+
+  /* ---------- 字段选项：从数据表 schema 动态取，不写死 ---------- */
+  /* 字段表：数据表加了字段，详情里就自动多一行可编辑项 */
+  function collectFields(schema) {
+    return ((schema && schema.properties) || []).map(function (f) {
+      var t = f.type === 'multi_select' ? 'select' : f.type;
+      if (f.name === '备注') t = 'textarea';
+      return { name: f.name, type: t || 'text' };
+    });
+  }
+  function collectOptions(schema) {
+    var out = {};
+    ((schema && schema.properties) || []).forEach(function (f) {
+      if ((f.type === 'select' || f.type === 'multi_select') && f.config && f.config.options) {
+        out[f.name] = f.config.options;
+      }
+    });
+    return out;
+  }
+  function fillSelect(id, field, blankText, useText) {
+    var el = $(id);
+    if (!el) return;
+    var opts = SCHEMA_OPTIONS[field] || [];
+    var html = blankText === null ? '' : '<option value="">' + esc(blankText || '请选择') + '</option>';
+    html += opts.map(function (o) {
+      var v = useText ? o.text : o.id;
+      return '<option value="' + esc(v) + '">' + esc(o.text) + '</option>';
+    }).join('');
+    var keep = el.value;
+    el.innerHTML = html;
+    if (!keep) return;
+    var hit = false;
+    for (var i = 0; i < el.options.length; i++) { if (el.options[i].value === keep) { hit = true; break; } }
+    el.value = hit ? keep : '';
+  }
+  function renderSelectOptions() {
+    fillSelect('c-ip', 'IP', '请选择');
+    fillSelect('c-channel', '来源渠道', '请选择');
+    fillSelect('c-ship', '到货状态', '请选择');
+    fillSelect('s-status', '状态', '请选择');
+    fillSelect('cFilterChannel', '来源渠道', '全部渠道', true);
+    fillSelect('cFilterIp', 'IP', '全部 IP', true);
+    fillSelect('cFilterShip', '到货状态', '全部到货状态', true);
+    $('cFilterChannel').value = STATE.filterChannel;
+    $('cFilterIp').value = STATE.filterIp;
+    $('cFilterShip').value = STATE.filterShip;
+  }
+  function loadSchemas() {
+    return Promise.all([apiSchema(DATABASE_ID), apiSchema(DB_SHOW)])
+      .then(function (res) {
+        var a = collectOptions(res[0]), b = collectOptions(res[1]);
+        SCHEMA_FIELDS = collectFields(res[0]);
+        Object.keys(a).forEach(function (k) { SCHEMA_OPTIONS[k] = a[k]; });
+        Object.keys(b).forEach(function (k) { SCHEMA_OPTIONS[k] = b[k]; });
+        renderSelectOptions();
+      })
+      .catch(function (err) {
+        console.error('[database] schema 加载失败:', err);
+        renderSelectOptions();
+      });
+  }
+
+  /* ---------- 视图切换与表单面板 ---------- */
+  var VIEW_TITLES = { overview: '概览', consume: '消费记录', transfer: '转出回本', show: '待开场贩' };
+  var PANELS = ['consumeFormWrap', 'transferFormWrap', 'showFormWrap'];
+
+  function switchView(name) {
+    STATE.view = name;
+    ['overview', 'consume', 'transfer', 'show'].forEach(function (v) {
+      var el = $('view-' + v);
+      if (el) el.classList.toggle('is-active', v === name);
+    });
+    Array.prototype.forEach.call(
+      document.querySelectorAll('.nav-item, .tabbar button'),
+      function (b) { b.classList.toggle('is-active', b.getAttribute('data-view') === name); }
+    );
+    $('viewTitle').textContent = VIEW_TITLES[name] || '概览';
+    refreshAll();
+    window.scrollTo(0, 0);
+  }
+  function togglePanel(wrapId) {
+    var el = $(wrapId);
+    var wasOpen = el.classList.contains('is-open');
+    PANELS.forEach(function (id) { $(id).classList.remove('is-open'); });
+    if (!wasOpen) {
+      el.classList.add('is-open');
+      var first = el.querySelector('input, select, textarea');
+      if (first && window.innerWidth > 820) first.focus();
+    }
+  }
+  function anyPanelOpen() {
+    for (var i = 0; i < PANELS.length; i++) {
+      if ($(PANELS[i]).classList.contains('is-open')) return true;
+    }
+    return false;
+  }
+  function closeAllPanels() {
+    PANELS.forEach(function (id) { $(id).classList.remove('is-open'); });
+  }
+  /* 点面板外空白 / 点别处 → 收起表单（草稿留着，随时再点开继续填） */
+  function handleOutsideClick(target) {
+    if (!anyPanelOpen()) return;
+    if (closestEl(target, '.collapse.is-open')) return;
+    if (closestEl(target, '[data-panel-toggle]')) return;
+    if (closestEl(target, '.sug')) return;   /* 点「系列名建议」不算点空白，别把表单收走 */
+    closeAllPanels();
+  }
+  function goConsumeFromShow(showName) {
+    switchView('consume');
+    if (!STATE.filterChannel) { STATE.filterChannel = ''; $('cFilterChannel').value = ''; }
+    PANELS.forEach(function (id) { $(id).classList.remove('is-open'); });
+    $('consumeFormWrap').classList.add('is-open');
+    var n = $('c-name');
+    if (n) n.value = showName;
+    fillSelect('c-channel', '来源渠道', '请选择');
+    var g = $('c-group');
+    if (g && !g.value) g.value = showName;
+    saveDraft();
+    toast('已按这场场贩新建一笔消费，选好来源渠道、填好金额保存即可');
+  }
+  function pickOptionValue(field, text) {
+    var opts = SCHEMA_OPTIONS[field] || [];
+    for (var i = 0; i < opts.length; i++) { if (opts[i].text === text) return opts[i].id; }
+    return text;
+  }
+  /* 反过来：把写库用的选项 id 换成显示用的文案。
+     线上读回来的是「已解析成文案」的值（如 咒术），本地增量更新也得保持一致，
+     否则列表/标签会显示出 ymIsRdgyufSI 这类内部 id。 */
+  function optionText(field, val) {
+    var opts = SCHEMA_OPTIONS[field] || [];
+    for (var i = 0; i < opts.length; i++) { if (opts[i].id === val) return opts[i].text; }
+    return val;
+  }
+
+  /* ---------- 表单提交与草稿缓存 ---------- */
+  var DRAFT_FIELDS = [
+    'ledger-name', 'ledger-ip', 'ledger-role', 'ledger-channel', 'ledger-group', 'ledger-series',
+    'ledger-amount', 'ledger-ship', 'ledger-eta', 'ledger-date', 'ledger-note',
+    'transfer-name', 'transfer-amount', 'transfer-date', 'transfer-note',
+    'show-name', 'show-date', 'show-status', 'show-budget', 'show-note'
+  ];
+
+  function readDraft() {
+    var raw = null;
+    try { raw = localStorage.getItem(DRAFT_PREFIX + 'form'); } catch (e) { return null; }
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch (e) { return null; }
+  }
+  function draftIsEmpty(o) {
+    if (!o) return true;
+    return !Object.keys(o).some(function (k) {
+      if (k === '__at') return false;
+      var v = (o[k] === null || o[k] === undefined) ? '' : o[k];
+      return String(v).trim() !== '';
+    });
+  }
+  function draftHasContent() { return !draftIsEmpty(readDraft()); }
+
+  function saveDraft() {
+    try {
+      var o = {};
+      DRAFT_FIELDS.forEach(function (n) {
+        var el = document.querySelector('[name="' + n + '"]');
+        if (el) o[n] = el.value;
+      });
+      if (draftIsEmpty(o)) {
+        localStorage.removeItem(DRAFT_PREFIX + 'form');
+      } else {
+        o.__at = Date.now();
+        localStorage.setItem(DRAFT_PREFIX + 'form', JSON.stringify(o));
+      }
+      updateDraftHint();
+    } catch (e) { /* storage 不可用，静默降级 */ }
+  }
+  function restoreDraft() {
+    var o = readDraft();
+    if (!o) return;
+    DRAFT_FIELDS.forEach(function (n) {
+      var el = document.querySelector('[name="' + n + '"]');
+      if (!el || !o[n]) return;
+      var hit = false;
+      if (el.tagName === 'SELECT') {
+        for (var i = 0; i < el.options.length; i++) { if (el.options[i].value === o[n]) hit = true; }
+      } else { hit = true; }
+      if (hit) el.value = o[n];
+    });
+  }
+  /* 让"已自动保存"这件事看得见——以前草稿是悄悄存的，用户以为丢了 */
+  function updateDraftHint() {
+    var bar = $('draftBar');
+    if (!bar) return;
+    var o = readDraft();
+    var has = !draftIsEmpty(o);
+    bar.classList.toggle('on', has);
+    var btn = $('btnOpenConsume');
+    if (btn) btn.classList.toggle('has-draft', has);   // 收起后也能看到「还有草稿」
+    if (!has) return;
+    var when = '';
+    if (o.__at) {
+      var t = new Date(o.__at);
+      when = ' · 最后保存 ' + (t.getHours() < 10 ? '0' : '') + t.getHours() + ':' +
+        (t.getMinutes() < 10 ? '0' : '') + t.getMinutes();
+    }
+    $('draftText').textContent = '草稿已自动保存' + when + '，关掉页面也不会丢';
+  }
+  function clearDraft() {
+    try { localStorage.removeItem(DRAFT_PREFIX + 'form'); } catch (e) { }
+    updateDraftHint();
+  }
+  function bindDraftCaching() {
+    var timer = null;
+    function queue() { clearTimeout(timer); timer = setTimeout(saveDraft, 300); }
+    DRAFT_FIELDS.forEach(function (n) {
+      var el = document.querySelector('[name="' + n + '"]');
+      if (!el) return;
+      el.addEventListener('input', queue);
+      el.addEventListener('change', queue);
+    });
+    updateDraftHint();
+  }
+
+  function markBusy(btn, text) {
+    if (!btn) return;
+    btn.dataset.label = btn.dataset.label || btn.textContent;
+    btn.disabled = true;
+    btn.textContent = text;
+  }
+  function markIdle(btn) {
+    if (!btn) return;
+    btn.disabled = false;
+    if (btn.dataset.label) btn.textContent = btn.dataset.label;
+  }
+  function resetConsumeForm() {
+    ['c-name', 'c-role', 'c-group', 'c-series', 'c-amount', 'c-eta', 'c-note'].forEach(function (id) { $(id).value = ''; });
+    ['c-ip', 'c-channel', 'c-ship'].forEach(function (id) { $(id).value = ''; });
+    $('c-date').value = todayKey();
+    $('c-eta').value = '';
+  }
+  function resetTransferForm() {
+    ['t-name', 't-amount', 't-note'].forEach(function (id) { $(id).value = ''; });
+    $('t-date').value = todayKey();
+  }
+  function resetShowForm() {
+    ['s-name', 's-budget', 's-note'].forEach(function (id) { $(id).value = ''; });
+    $('s-status').value = '';
+    $('s-date').value = '';
+  }
+
+  function submitConsume() {
+    var name = $('c-name').value.trim();
+    var amountRaw = $('c-amount').value;
+    if (!name) { toast('先填谷子名称'); $('c-name').focus(); return; }
+    if (amountRaw === '' || !isFinite(parseFloat(amountRaw))) { toast('先填金额'); $('c-amount').focus(); return; }
+    if (!$('c-channel').value) { toast('先选来源渠道'); $('c-channel').focus(); return; }
+
+    var p = {};
+    p['谷子名称'] = { text: name };
+    p['记录类型'] = { select: pickOptionValue('记录类型', '消费') };
+    if ($('c-ip').value) p['IP'] = { select: $('c-ip').value };
+    if ($('c-role').value.trim()) p['角色'] = { text: $('c-role').value.trim() };
+    p['来源渠道'] = { select: $('c-channel').value };
+    if ($('c-group').value.trim()) p['团名批次'] = { text: $('c-group').value.trim() };
+    if ($('c-series').value.trim()) p['谷子系列'] = { text: $('c-series').value.trim() };
+    p['金额'] = { currency: parseFloat(amountRaw) };
+    if ($('c-ship').value) p['到货状态'] = { select: $('c-ship').value };
+    if ($('c-eta').value.trim()) p['预计到货'] = { text: $('c-eta').value.trim() };
+    if ($('c-date').value) p['付款日期'] = { date: $('c-date').value };
+    if ($('c-note').value.trim()) p['备注'] = { text: $('c-note').value.trim() };
+
+    var btn = $('btnSaveConsume');
+    markBusy(btn, '保存中…');
+    return apiAdd(DATABASE_ID, p).then(function (res) {
+      /* 第 40 轮：本地增量插入，不再全量重拉，保存秒回 */
+      patchLocalAdd(addedId(res), p);
+      clearDraft();
+      resetConsumeForm();
+      toast('已记下这笔消费');
+      refreshAll();
+    }).catch(function (err) {
+      console.error('[database] 保存消费失败:', err);
+      writeFailToast('这条消费');
+    }).then(function () { markIdle(btn); });
+  }
+
+  function submitTransfer() {
+    var name = $('t-name').value.trim();
+    var amountRaw = $('t-amount').value;
+    if (!name) { toast('先填转出的内容'); $('t-name').focus(); return; }
+    if (amountRaw === '' || !isFinite(parseFloat(amountRaw))) { toast('先填转出金额'); $('t-amount').focus(); return; }
+
+    var p = {};
+    p['谷子名称'] = { text: name };
+    p['记录类型'] = { select: pickOptionValue('记录类型', '转出') };
+    p['金额'] = { currency: parseFloat(amountRaw) };
+    if ($('t-date').value) p['付款日期'] = { date: $('t-date').value };
+    if ($('t-note').value.trim()) p['备注'] = { text: $('t-note').value.trim() };
+
+    var btn = $('btnSaveTransfer');
+    markBusy(btn, '保存中…');
+    return apiAdd(DATABASE_ID, p).then(function (res) {
+      patchLocalAdd(addedId(res), p);
+      clearDraft();
+      resetTransferForm();
+      toast('已记下这笔转出，净支出已更新');
+      refreshAll();
+    }).catch(function (err) {
+      console.error('[database] 保存转出失败:', err);
+      writeFailToast('这笔转出');
+    }).then(function () { markIdle(btn); });
+  }
+
+  function submitShow() {
+    var name = $('s-name').value.trim();
+    var date = $('s-date').value;
+    if (!name) { toast('先填场贩名称'); $('s-name').focus(); return; }
+    if (!date) { toast('先选日期'); $('s-date').focus(); return; }
+
+    var dd = daysFromToday(date);
+    var status = $('s-status').value || pickOptionValue('状态', dd !== null && dd < 0 ? '已结束' : '待开');
+
+    var p = {};
+    p['场贩名称'] = { text: name };
+    p['日期'] = { date: date };
+    p['状态'] = { select: status };
+    if ($('s-budget').value && isFinite(parseFloat($('s-budget').value))) {
+      p['预算'] = { currency: parseFloat($('s-budget').value) };
+    }
+    if ($('s-note').value.trim()) p['备注'] = { text: $('s-note').value.trim() };
+
+    var btn = $('btnSaveShow');
+    markBusy(btn, '保存中…');
+    return apiAdd(DB_SHOW, p).then(function (res) {
+      /* 第 46 轮：走统一补丁（bumpVer + _fp + 自写静默期都齐），保存后列表立即更新 */
+      patchShowAdd(addedId(res), p);
+      clearDraft();
+      resetShowForm();
+      toast('已加入场贩排期');
+      refreshAll();
+    }).catch(function (err) {
+      console.error('[database] 保存场贩失败:', err);
+      writeFailToast('这场场贩');
+    }).then(function () { markIdle(btn); });
+  }
+
+  /* ---------- 行内操作与两步确认删除 ---------- */
+  /* 状态浮层：到货状态可任意来回改，不再单向推进 */
+  var STATUS_GROUPS = [
+    { field: '到货状态', fallback: ['未出荷', '已出荷', '已排发'] }
+  ];
+  var STATUS_TONE = {
+    '未出荷': 'var(--warn)', '已出荷': 'var(--info)', '已排发': 'var(--rose)'
+  };
+  var PICK_ID = null;
+
+  function optionsOf(field) {
+    var opts = SCHEMA_OPTIONS[field] || [];
+    if (opts.length) return opts.map(function (o) { return o.text; });
+    for (var i = 0; i < STATUS_GROUPS.length; i++) {
+      if (STATUS_GROUPS[i].field === field) return STATUS_GROUPS[i].fallback.slice();
+    }
+    return [];
+  }
+  function closeStatusPop() {
+    var el = $('pickPop');
+    if (el) el.classList.remove('on');
+    PICK_ID = null;
+  }
+  function placeStatusPop(anchor) {
+    var el = $('pickPop');
+    if (!el) return;
+    var r = anchor.getBoundingClientRect();
+    var w = el.offsetWidth, h = el.offsetHeight, pad = 10;
+    var left = Math.max(pad, Math.min(r.right - w, window.innerWidth - w - pad));
+    var top = r.bottom + 6;
+    if (top + h > window.innerHeight - pad) {
+      var up = r.top - h - 6;
+      top = up > pad ? up : Math.max(pad, window.innerHeight - h - pad);
+    }
+    el.style.left = Math.round(left) + 'px';
+    el.style.top = Math.round(top) + 'px';
+  }
+  function openStatusPop(anchor, id) {
+    var el = $('pickPop');
+    var row = findIn(STATE.ledger, id);
+    if (!el || !row) return;
+    var html = [];
+    STATUS_GROUPS.forEach(function (g) {
+      var opts = optionsOf(g.field);
+      if (!opts.length) return;
+      if (html.length) html.push('<div class="pp-sep"></div>');
+      html.push('<div class="pp-group">' + esc(g.field) + '</div>');
+      var cur = row[g.field] || '';
+      opts.forEach(function (t) {
+        var isCur = t === cur;
+        html.push('<button type="button" class="pp-item' + (isCur ? ' is-cur' : '') + '"' +
+          ' data-field="' + esc(g.field) + '" data-val="' + esc(t) + '"' +
+          (isCur ? ' aria-current="true"' : '') + '>' +
+          '<span class="pp-dot" style="background:' + (STATUS_TONE[t] || '#8398a8') + '"></span>' +
+          '<span class="pp-txt">' + esc(t) + '</span>' +
+          '<svg class="pp-tick" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4"' +
+          ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.4l3.3 3.3L13 5"/></svg>' +
+          '</button>');
+      });
+    });
+    if (!html.length) { toast('状态选项还没加载出来，刷新一下再试'); return; }
+    el.innerHTML = html.join('');
+    PICK_ID = id;
+    el.classList.add('on');
+    placeStatusPop(anchor);
+  }
+  function setFieldStatus(id, field, val) {
+    var payload = {};
+    payload[field] = { select: pickOptionValue(field, val) };
+    return apiUpdate(DATABASE_ID, id, payload)
+      .then(function () {
+        /* 第 43 轮：改状态也走本地增量（成功才 patch，失败才退回整表重拉） */
+        if (!patchLocalUpdate(indexOfRecord(id), payload)) return afterWrite(field + ' → ' + val);
+        toast(field + ' → ' + val);
+        refreshAll();
+      })
+      .catch(handleWriteError);
+  }
+
+  /* ---------- 记录详情弹层：所有字段都能就地改 ---------- */
+  var DETAIL_ID = null;
+  var DETAIL_PICKS = ['到货状态'];
+  /* schema 没拿到时的兜底字段表；正常走 SCHEMA_FIELDS（数据表加字段会自动跟上） */
+  var DETAIL_FALLBACK_FIELDS = [
+    { name: '谷子名称', type: 'text' }, { name: '记录类型', type: 'select' },
+    { name: 'IP', type: 'select' }, { name: '角色', type: 'text' },
+    { name: '来源渠道', type: 'select' }, { name: '团名批次', type: 'text' },
+    { name: '谷子系列', type: 'text' },
+    { name: '金额', type: 'currency' },
+    { name: '到货状态', type: 'select' }, { name: '预计到货', type: 'text' },
+    { name: '付款日期', type: 'date' }, { name: '付款截图', type: 'image' },
+    { name: '备注', type: 'textarea' }
+  ];
+  var DETAIL_LABELS = { '团名批次': '团名 / 批次' };
+
+  /* 详情里的字段顺序：把「谷子系列」提到「谷子名称」正下面（填完名字顺手就填系列），
+     其余字段仍按数据表顺序自动生成 —— 数据表加字段，这里照样会自动多一行 */
+  var DETAIL_HEAD = ['谷子名称', '谷子系列'];
+  var _dtSrc = null, _dtList = null;
+  function detailFields() {
+    var list = SCHEMA_FIELDS.length ? SCHEMA_FIELDS : DETAIL_FALLBACK_FIELDS;
+    if (_dtSrc === list && _dtList) return _dtList;
+    var head = [], rest = [];
+    list.forEach(function (f) {
+      if (DETAIL_HEAD.indexOf(f.name) >= 0) head.push(f); else rest.push(f);
+    });
+    head.sort(function (a, b) { return DETAIL_HEAD.indexOf(a.name) - DETAIL_HEAD.indexOf(b.name); });
+    _dtSrc = list; _dtList = head.concat(rest);
+    return _dtList;
+  }
+  function detailFieldType(f) {
+    var list = detailFields();
+    for (var i = 0; i < list.length; i++) { if (list[i].name === f) return list[i].type; }
+    return 'text';
+  }
+  function detailValue(r, f) {
+    var v = r[f];
+    if (v === null || v === undefined) return '';
+    var s = String(v).trim();
+    /* 日期字段读回来可能是 ISO（2026-09-17T00:00:00Z），而日期控件里只有日期部分。
+       不归一的话，一打开记录「付款日期」就被算成改动过，按钮无端亮起来。 */
+    if (detailFieldType(f) === 'date') return s.slice(0, 10);
+    return s;
+  }
+  /* ---------- 付款截图：读写 image 字段 ---------- */
+  var SHOT_MAX_W = 900;      /* 长边压到 900px 再传，省流量也够看清凭证 */
+  var SHOT_MAX_N = 9;        /* 一条记录最多 9 张，和常见凭证数量对齐 */
+
+  function detailShots(r, field) {
+    var v = r ? r[field] : null;
+    /* 读回来是 [{imageUrl,…}]（FieldValue），写进去是 {images:[…]}（PropertyValue）—— 两种都要认 */
+    var imgs = Array.isArray(v) ? v : ((v && v.images) || []);
+    return imgs.filter(function (x) { return x && x.imageUrl; });
+  }
+  function detailShotsHtml(field, r) {
+    var list = detailShots(r, field);
+    var thumbs = list.map(function (im, i) {
+      return '<span class="sh-thumb">' +
+        '<img src="' + esc(im.imageUrl) + '" alt="付款截图 ' + (i + 1) + '" loading="lazy"' +
+        ' data-shot="' + esc(field) + '" data-si="' + i + '" title="点一下看大图">' +
+        '<button type="button" class="sh-del" data-shot-del="' + esc(field) + '" data-si="' + i +
+        '" aria-label="删除这张截图">' +
+        '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"' +
+        ' stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></span>';
+    }).join('');
+    return '<span class="d-shot" data-shot-wrap="' + esc(field) + '">' + thumbs +
+      (list.length >= SHOT_MAX_N ? '' :
+        '<button type="button" class="sh-add" data-shot-add="' + esc(field) + '">' +
+        '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"' +
+        ' stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>加截图</button>') +
+      (list.length ? '' :
+        '<span class="sh-tip">还没有截图。点「加截图」选图，上传后立刻存好，不用再点保存。</span>') +
+      '</span>';
+  }
+  /* 读图 → 长边压到 SHOT_MAX_W → 交回可直接上传的 base64；canvas 不可用时原样传 */
+  function compressShot(file) {
+    return new Promise(function (resolve, reject) {
+      if (!window.FileReader || !window.Image) { reject(new Error('这个浏览器不支持读图')); return; }
+      var fr = new window.FileReader();
+      fr.onerror = function () { reject(new Error('读不到这个文件')); };
+      fr.onload = function () {
+        var raw = String(fr.result || '');
+        var b64 = raw.indexOf(',') >= 0 ? raw.split(',')[1] : raw;
+        var img = new window.Image();
+        img.onerror = function () { reject(new Error('这不是能识别的图片')); };
+        img.onload = function () {
+          var w = img.naturalWidth || img.width || 0;
+          var h = img.naturalHeight || img.height || 0;
+          var out = null;
+          try {
+            var cv = document.createElement('canvas');
+            if (cv.getContext) {
+              var scale = (w > SHOT_MAX_W) ? (SHOT_MAX_W / w) : 1;
+              var cw = Math.max(1, Math.round(w * scale));
+              var ch = Math.max(1, Math.round(h * scale));
+              cv.width = cw; cv.height = ch;
+              cv.getContext('2d').drawImage(img, 0, 0, cw, ch);
+              out = { data: cv.toDataURL('image/jpeg', 0.82).split(',')[1], contentType: 'image/jpeg', width: cw, height: ch };
+            }
+          } catch (e) { out = null; }   /* 压缩不了就原图上传 */
+          resolve(out || { data: b64, contentType: file.type || 'image/jpeg', width: w, height: h });
+        };
+        img.onload.__safe = true;
+        img.src = raw;
+        if (!raw) { resolve({ data: b64, contentType: file.type || 'image/jpeg', width: 0, height: 0 }); }
+      };
+      fr.readAsDataURL(file);
+    });
+  }
+  function pickShots(field) {
+    var inp = document.createElement('input');
+    inp.type = 'file';
+    inp.accept = 'image/png,image/jpeg,image/gif,image/webp,image/bmp,image/heic,image/heif,image/tiff,image/svg+xml';
+    inp.multiple = true;
+    inp.style.position = 'fixed'; inp.style.left = '-9999px'; inp.style.top = '0';
+    document.body.appendChild(inp);
+    inp.addEventListener('change', function () {
+      var files = inp.files;
+      if (inp.parentNode) inp.parentNode.removeChild(inp);
+      uploadShots(field, files);
+    });
+    inp.click();
+  }
+  /* 图片走「上传即存」：选完图直接写库，不再等底部「保存修改」 */
+  function uploadShots(field, files) {
+    var db = getDb();
+    var list = Array.prototype.slice.call(files || []);
+    if (!list.length) return Promise.resolve();
+    var r = findIn(STATE.ledger, DETAIL_ID);
+    if (!r) { toast('先打开一条记录'); return Promise.resolve(); }
+    if (!db || typeof db.uploadImage !== 'function') { toast('当前环境不支持上传图片，请用最新版浏览器'); return Promise.resolve(); }
+    var room = SHOT_MAX_N - detailShots(r, field).length;
+    if (room <= 0) { toast('一条记录最多 ' + SHOT_MAX_N + ' 张截图'); return Promise.resolve(); }
+    if (list.length > room) { list = list.slice(0, room); toast('最多再加 ' + room + ' 张，多的先没传'); }
+    var id = DETAIL_ID;
+    var kept = detailShots(r, field).slice();
+    var addBtn = document.querySelector('[data-shot-add="' + field + '"]');
+    if (addBtn) { addBtn.disabled = true; addBtn.textContent = '上传中…'; }
+    return Promise.all(list.map(function (f) {
+      return compressShot(f)
+        .then(function (o) { return db.uploadImage({ data: o.data, contentType: o.contentType, fileName: f.name || '付款截图' }); })
+        .then(function (res) {
+          var url = (typeof res === 'string') ? res : (res && (res.url || res.imageUrl));
+          if (!url) throw new Error('上传没有返回图片地址');
+          kept.push({ title: f.name || '付款截图', imageUrl: url });
+        });
+    })).then(function () {
+      var props = {};
+      props[field] = { image: { images: kept } };
+      return apiUpdate(DATABASE_ID, id, props).then(function () {
+        /* 第 40 轮：本地增量改这条（含刚才上传的图），不再全量重拉 */
+        if (!patchLocalUpdate(indexOfRecord(id), props)) return fetchAll();
+        toast('已存好 ' + list.length + ' 张付款截图');
+      });
+    }).then(function () {
+      refreshAll();
+      if (DETAIL_ID === id) renderDetail(id);
+    }).catch(function (err) {
+      console.error('[database] 付款截图上传失败:', err);
+      if (addBtn) { addBtn.disabled = false; addBtn.textContent = '加截图'; }
+      writeFailToast('这张付款截图');
+    });
+  }
+  function removeShot(field, idx) {
+    var r = findIn(STATE.ledger, DETAIL_ID);
+    if (!r) return Promise.resolve();
+    var id = DETAIL_ID;
+    var kept = detailShots(r, field).filter(function (x, i) { return i !== Number(idx); });
+    var props = {};
+    props[field] = { image: { images: kept } };
+    return apiUpdate(DATABASE_ID, id, props).then(function () {
+      toast('已删掉这张截图');
+      if (!patchLocalUpdate(indexOfRecord(id), props)) return fetchAll();
+    }).then(function () {
+      refreshAll();
+      if (DETAIL_ID === id) renderDetail(id);
+    }).catch(handleWriteError);
+  }
+  function openShot(src) {
+    var box = $('shotZoom');
+    if (!box) return;
+    box.innerHTML = '<img src="' + esc(src) + '" alt="付款截图">';
+    box.classList.add('on');
+  }
+  function closeShot() {
+    var box = $('shotZoom');
+    if (box) { box.classList.remove('on'); box.innerHTML = ''; }
+  }
+
+  /* ---------- 「谷子系列」输入建议：记住填过的系列名，打一个字就能挑出来 ----------
+     表单里的 #c-series 和详情里的谷子系列输入框共用这一套（事件委托，详情是动态生成的） */
+  var SUG_INPUT = null;
+  function seriesSugHide() {
+    var box = $('seriesSug');
+    if (box) { box.hidden = true; box.innerHTML = ''; }
+    SUG_INPUT = null;
+  }
+  /* 把命中的那几个字标出来，一眼就知道为什么它被推荐 */
+  function sugMark(name, q) {
+    var i = name.toLowerCase().indexOf(q);
+    if (i < 0) return esc(name);
+    return esc(name.slice(0, i)) + '<b>' + esc(name.slice(i, i + q.length)) + '</b>' +
+      esc(name.slice(i + q.length));
+  }
+  function seriesSugShow(input) {
+    var box = $('seriesSug');
+    if (!box || !input) return;
+    var q = String(input.value || '').trim().toLowerCase();
+    if (!q) { seriesSugHide(); return; }
+    var hit = seriesNames().filter(function (n) {
+      var low = n.toLowerCase();
+      return low.indexOf(q) >= 0 && low !== q;   /* 已经等于原名的就不用再提示了 */
+    }).slice(0, 8);
+    if (!hit.length) { seriesSugHide(); return; }
+    SUG_INPUT = input;
+    box.innerHTML = '<div class="sug-cap">以前填过的系列（点一下就用）</div>' +
+      hit.map(function (n) {
+        return '<button type="button" class="sug-item" data-sug="' + esc(n) + '">' +
+          sugMark(n, q) + '</button>';
+      }).join('');
+    box.hidden = false;
+    seriesSugPlace();
+  }
+  /* 建议框是 fixed 定位、跟着输入框走：滚动/缩放时重新贴合，
+     而不是一滚就收起来（点进输入框、页面自动滚动时那样会瞬间闪掉） */
+  function seriesSugPlace() {
+    var box = $('seriesSug'), input = SUG_INPUT;
+    if (!box || box.hidden || !input) return;
+    if (!document.body.contains(input)) { seriesSugHide(); return; }
+    var rc = input.getBoundingClientRect();
+    var w = Math.min(Math.max(rc.width, 190), Math.max(160, window.innerWidth - 16));
+    box.style.width = w + 'px';
+    box.style.left = Math.max(8, Math.min(rc.left, window.innerWidth - w - 8)) + 'px';
+    box.style.top = (rc.bottom + 6) + 'px';
+  }
+  function seriesSugPick(name) {
+    var input = SUG_INPUT;
+    seriesSugHide();
+    if (!input || !name) return;
+    input.value = name;
+    /* 手动补一次 input 事件：草稿自动保存 / 详情「保存修改」的计数都靠它 */
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.focus();
+  }
+
+  /* ---------- 系列明细弹层：点概览的系列行弹出，里面按 IP 分类列清 ---------- */
+  function seriesPopHtml(name, fromAll) {
+    var groups = seriesGroups(name);
+    var total = groups.reduce(function (a, g) { return a + g.v; }, 0);
+    var n = groups.reduce(function (a, g) { return a + g.n; }, 0);
+    var all = bySeries().reduce(function (a, b) { return a + b.v; }, 0);
+    var pct = all ? (total / all * 100).toFixed(0) : 0;
+    var body = groups.map(function (g) {
+      var rows = g.rows.slice().sort(function (a, b) {
+        var da = a['付款日期'] ? String(a['付款日期']) : '';
+        var dbb = b['付款日期'] ? String(b['付款日期']) : '';
+        return (dbb || '') > (da || '') ? 1 : -1;
+      }).map(function (r) {
+        return '<li class="sp-r" data-open="' + esc(r._id) + '" title="点开这条记录">' +
+          '<span class="sp-n">' + esc(r['谷子名称'] || '(未填名称)') + '</span>' +
+          '<span class="sp-d">' + (r['付款日期'] ? esc(md(r['付款日期'])) : '无付款日期') + '</span>' +
+          '<span class="sp-a">' + yuan(num(r['金额'])) + '</span></li>';
+      }).join('');
+      return '<div class="sp-g">' +
+        '<div class="sp-g-h"><span class="sp-g-k">' + esc(g.k) + '</span>' +
+        '<span class="sp-g-m">' + g.n + ' 笔 · ' + yuan(g.v) + '</span></div>' +
+        '<ul class="sp-list">' + rows + '</ul></div>';
+    }).join('');
+    return '<div class="modal-head">' +
+        (fromAll ? '<button type="button" class="m-back" data-sback="1" title="回到全部系列" ' +
+          'aria-label="回到全部系列"><svg class="ic" viewBox="0 0 24 24" fill="none" ' +
+          'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ' +
+          'aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>' : '') +
+        '<div class="m-title">' + esc(name) + '</div>' +
+        '<span class="m-amt">' + yuan(total) + '</span>' +
+        '<button type="button" class="m-close" data-sclose="1" aria-label="关闭">' +
+          '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"' +
+          ' stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
+        '</button>' +
+      '</div>' +
+      '<div class="modal-body">' +
+        (groups.length
+          ? '<div class="hint sp-hint">累计 ' + yuan(total) + ' · ' + n + ' 笔 · 占全部消费 ' +
+            pct + '%　·　下面按 IP 分类</div>' + body
+          : '<div class="empty">这个系列下还没有消费记录</div>') +
+      '</div>' +
+      '<div class="modal-foot"><button type="button" class="btn sec" data-sclose="1">关闭</button></div>';
+  }
+  /* 「全部系列」弹层：一个 IP 一列，列内按金额从高到低；点某一列里的系列再钻进去看明细 */
+  function seriesAllHtml() {
+    var cols = seriesIpColumns();
+    var total = cols.reduce(function (a, c) { return a + c.v; }, 0);
+    var n = cols.reduce(function (a, c) { return a + c.n; }, 0);
+    var nSeries = bySeries().length;
+    var body = cols.map(function (c) {
+      return '<div class="sp-col">' +
+        '<div class="sp-col-h"><span class="sp-col-k" title="' + esc(c.k) + '">' + esc(c.k) + '</span>' +
+        '<span class="sp-col-m">' + yuan(c.v) + '</span></div>' +
+        '<ul class="sp-clist">' + c.list.map(function (s) {
+          return '<li class="sp-cr" data-series="' + esc(s.k) + '" ' +
+            'title="点一下看「' + esc(s.k) + '」按 IP 的明细">' +
+            '<span class="sp-cn">' + esc(s.k) + '<i>' + s.n + ' 笔</i></span>' +
+            '<span class="sp-ca">' + yuan(s.v) + '</span></li>';
+        }).join('') + '</ul></div>';
+    }).join('');
+    return '<div class="modal-head">' +
+        '<div class="m-title">各系列消费合计</div>' +
+        '<span class="m-amt">' + yuan(total) + '</span>' +
+        '<button type="button" class="m-close" data-sclose="1" aria-label="关闭">' +
+          '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"' +
+          ' stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
+        '</button>' +
+      '</div>' +
+      '<div class="modal-body">' +
+        (cols.length
+          ? '<div class="hint sp-hint">共 ' + nSeries + ' 个系列 · ' + n + ' 笔 · 累计 ' + yuan(total) +
+            '　·　按 IP 分类，一个 IP 一列，列内按金额从高到低</div>' +
+            '<div class="sp-cols">' + body + '</div>'
+          : '<div class="empty">还没有填过「谷子系列」的消费记录</div>') +
+      '</div>' +
+      '<div class="modal-foot"><button type="button" class="btn sec" data-sclose="1">关闭</button></div>';
+  }
+  function openSeriesPop(name, fromAll) {
+    var m = $('seriesMask'), pop = $('seriesPop');
+    if (!m || !pop || !name) return;
+    pop.classList.remove('wide');
+    pop.innerHTML = seriesPopHtml(name, !!fromAll);
+    m.classList.add('on');
+    document.body.style.overflow = 'hidden';
+  }
+  /* 卡片标题 / 末尾那行 → 全部系列（按 IP 分列） */
+  function openSeriesAll() {
+    var m = $('seriesMask'), pop = $('seriesPop');
+    if (!m || !pop) return;
+    pop.classList.add('wide');
+    pop.innerHTML = seriesAllHtml();
+    m.classList.add('on');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeSeriesPop() {
+    var m = $('seriesMask');
+    if (m) m.classList.remove('on');
+    var pop = $('seriesPop');
+    if (pop) pop.classList.remove('wide');
+    var dm = $('detailMask');
+    if (!dm || !dm.classList.contains('on')) document.body.style.overflow = '';
+  }
+
+  /* 一个字段一个控件：类型决定形态，值来自记录本身 */
+  function detailControlHtml(field, r) {
+    var type = detailFieldType(field);
+    var raw = detailValue(r, field);
+    var df = ' data-df="' + esc(field) + '"';
+    var body;
+    if (type === 'image') {
+      body = detailShotsHtml(field, r);
+    } else if (type === 'select') {
+      body = '<select class="d-inp"' + df + '><option value="">未设置</option>' +
+        optionsOf(field).map(function (t) {
+          return '<option value="' + esc(t) + '"' + (t === raw ? ' selected' : '') + '>' + esc(t) + '</option>';
+        }).join('') + '</select>';
+    } else if (type === 'date') {
+      var d = /^\d{4}-\d{2}-\d{2}/.test(raw) ? raw.slice(0, 10) : '';
+      body = '<input type="date" class="d-inp"' + df + ' value="' + esc(d) + '">';
+    } else if (type === 'currency') {
+      body = '<input type="number" step="0.01" class="d-inp"' + df +
+        ' value="' + (raw === '' ? '' : esc(String(num(raw)))) + '" placeholder="0">';
+    } else if (type === 'number') {
+      body = '<input type="number" step="any" class="d-inp"' + df +
+        ' value="' + esc(raw) + '" placeholder="0">';
+    } else if (type === 'textarea') {
+      body = '<textarea rows="2" class="d-inp"' + df + ' placeholder="未填">' + esc(raw) + '</textarea>';
+    } else {
+      /* 关掉浏览器自带的自动填充，免得盖住页面的「以前填过的系列」建议 */
+      body = '<input type="text" class="d-inp"' + df + ' autocomplete="off" value="' + esc(raw) + '" placeholder="未填">';
+    }
+    return '<div class="d-row"><span class="d-k">' +
+      esc(DETAIL_LABELS[field] || field) + '</span>' + body + '</div>';
+  }
+  function detailEditHtml(r) {
+    return '<div class="d-group">' +
+      '<div class="d-g-k">全部资料 · 改完点底部「保存修改」</div>' +
+      detailFields().map(function (f) { return detailControlHtml(f.name, r); }).join('') +
+      '</div>';
+  }
+  function detailFormValues() {
+    var pop = $('detailPop');
+    var out = {};
+    if (!pop) return out;
+    Array.prototype.forEach.call(pop.querySelectorAll('[data-df]'), function (el) {
+      out[el.getAttribute('data-df')] = el.value;
+    });
+    return out;
+  }
+  /* 只提交真正改动过的字段，没碰过的不写库 */
+  function detailChanges(r) {
+    var cur = detailFormValues(), ch = {};
+    Object.keys(cur).forEach(function (f) {
+      var b = String(cur[f] == null ? '' : cur[f]).trim();
+      if (detailValue(r, f) !== b) ch[f] = b;
+    });
+    return ch;
+  }
+  function syncDetailSave() {
+    var pop = $('detailPop');
+    if (!pop) return;
+    var btn = pop.querySelector('[data-dsave]');
+    if (!btn) return;
+    var r = findIn(STATE.ledger, DETAIL_ID);
+    var n = r ? Object.keys(detailChanges(r)).length : 0;
+    btn.disabled = n === 0;
+    btn.textContent = n ? '保存修改（' + n + ' 项）' : '保存修改';
+  }
+  function detailPropsFrom(changes) {
+    var p = {};
+    Object.keys(changes).forEach(function (f) {
+      var v = changes[f], type = detailFieldType(f);
+      if (type === 'select') p[f] = { select: v ? pickOptionValue(f, v) : '' };
+      else if (type === 'date') p[f] = { date: v };
+      else if (type === 'currency') p[f] = { currency: num(v) };
+      else if (type === 'number') p[f] = { number: num(v) };
+      else p[f] = { text: v };
+    });
+    return p;
+  }
+  function saveDetail(id) {
+    var r = findIn(STATE.ledger, id);
+    var pop = $('detailPop');
+    if (!r || !pop) return;
+    var ch = detailChanges(r), keys = Object.keys(ch);
+    if (!keys.length) { toast('还没有改动'); return; }
+    if (keys.indexOf('谷子名称') >= 0 && !ch['谷子名称']) { toast('谷子名称不能空着'); return; }
+    var btn = pop.querySelector('[data-dsave]');
+    var blanks = keys.filter(function (k) { return String(ch[k]).trim() === ''; });
+    markBusy(btn, '保存中…');
+    /* 保存成功后弹层自己收回去（用户不用再点一次关闭） */
+    var rowIdx = indexOfRecord(id);
+    function done() {
+      toast('已保存修改');
+      return Promise.resolve(rowIdx).then(function (ix) {
+        /* 第 40 轮：本地改这条，不再全量重拉 */
+        if (!patchLocalUpdate(ix, detailPropsFrom(ch))) {
+          return fetchAll();   /* 万一本地找不到（理论不该发生），退回全量拉 */
+        }
+      }).then(function () {
+        refreshAll();
+        closeDetail();
+      });
+    }
+    return apiUpdate(DATABASE_ID, id, detailPropsFrom(ch))
+      .then(done)
+      .catch(function (err) {
+        /* 少数字段不接受留空：剔掉空值再存一次，并如实说清跳过了哪几项 */
+        if (!blanks.length) { handleWriteError(err); markIdle(btn); return; }
+        var keep = {};
+        keys.forEach(function (k) { if (blanks.indexOf(k) < 0) keep[k] = ch[k]; });
+        if (!Object.keys(keep).length) { toast('这几项不能留空，已保持原样'); markIdle(btn); return; }
+        return apiUpdate(DATABASE_ID, id, detailPropsFrom(keep))
+          .then(function () {
+            toast('已保存；' + blanks.join('、') + ' 不能留空，已跳过');
+            if (!patchLocalUpdate(rowIdx, detailPropsFrom(keep))) return fetchAll();
+          })
+          .then(function () { refreshAll(); closeDetail(); })
+          .catch(function (e2) { handleWriteError(e2); markIdle(btn); });
+      });
+  }
+
+  function detailPickHtml(field, r) {
+    var opts = optionsOf(field);
+    if (!opts.length) return '';
+    var cur = r[field] || '';
+    return '<div class="d-group">' +
+      '<div class="d-g-k">' + esc(field) + ' · 点一下就改</div>' +
+      '<div class="d-opts">' + opts.map(function (t) {
+        var on = t === cur;
+        return '<button type="button" class="d-opt' + (on ? ' is-cur' : '') + '"' +
+          ' data-dfield="' + esc(field) + '" data-dval="' + esc(t) + '">' +
+          '<span class="d-dot" style="background:' +
+          (STATUS_TONE[t] || '#8398a8') + '"></span>' +
+          esc(t) + '</button>';
+      }).join('') + '</div></div>';
+  }
+  function renderDetail(id) {
+    var pop = $('detailPop');
+    var r = findIn(STATE.ledger, id);
+    if (!pop) return;
+    if (!r) { closeDetail(); return; }
+    var spend = isSpend(r);
+    var tags = [];
+    if (r['IP']) tags.push(tag(r['IP'], 'ip'));
+    if (r['角色']) tags.push(tag(r['角色'], ''));
+    if (r['来源渠道']) tags.push(tag(r['来源渠道'], 'ch'));
+    if (r['团名批次'] && r['团名批次'] !== r['来源渠道']) tags.push(tag(r['团名批次'], 'grp'));
+    pop.innerHTML =
+      '<div class="modal-head">' +
+        '<div class="m-title">' + esc(r['谷子名称']) + '</div>' +
+        '<span class="m-amt' + (spend ? '' : ' inc') + '">' +
+          (spend ? '' : '+') + yuan(r['金额']) + '</span>' +
+        '<button type="button" class="m-close" data-dclose="1" aria-label="关闭">' +
+          '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"' +
+          ' stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
+        '</button>' +
+      '</div>' +
+      '<div class="modal-body">' +
+        (tags.length ? '<div class="m-tags">' + tags.join('') + '</div>' : '') +
+        DETAIL_PICKS.map(function (f) { return detailPickHtml(f, r); }).join('') +
+        detailEditHtml(r) +
+      '</div>' +
+      '<div class="modal-foot">' +
+        '<button type="button" class="btn" data-dsave="' + esc(id) + '">保存修改</button>' +
+        '<button type="button" class="btn sec" data-ddel="' + esc(id) + '">删除这条记录</button>' +
+      '</div>';
+    syncDetailSave();
+  }
+  function openDetail(id) {
+    var m = $('detailMask');
+    if (!m) return;
+    DETAIL_ID = id;
+    renderDetail(id);
+    m.classList.add('on');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeDetail() {
+    var m = $('detailMask');
+    if (m) m.classList.remove('on');
+    var sm = $('seriesMask');
+    if (!sm || !sm.classList.contains('on')) document.body.style.overflow = '';
+    DETAIL_ID = null;
+  }
+
+  function closestEl(node, sel) {
+    while (node && node.nodeType === 1) {
+      if (node.matches && node.matches(sel)) return node;
+      node = node.parentNode;
+    }
+    return null;
+  }
+  function findIn(list, id) {
+    for (var i = 0; i < list.length; i++) { if (list[i]._id === id) return list[i]; }
+    return null;
+  }
+  /* 两步确认，避免 iframe 内 confirm 被拦截 */
+  function confirmThen(btn, tip, fn) {
+    if (btn.getAttribute('data-armed') === '1') {
+      btn.removeAttribute('data-armed');
+      fn();
+      return;
+    }
+    btn.setAttribute('data-armed', '1');
+    var old = btn.textContent;
+    btn.textContent = tip;
+    setTimeout(function () {
+      if (btn.getAttribute('data-armed') === '1') {
+        btn.removeAttribute('data-armed');
+        btn.textContent = old;
+      }
+    }, 3000);
+  }
+  function afterWrite(okMsg) {
+    toast(okMsg);
+    return fetchAll().then(function () { refreshAll(); });
+  }
+  function handleWriteError(err) {
+    console.error('[database] 操作失败:', err);
+    DIAG.lastError = (err && (err.message || err)) + '';
+    if (!STATE.online) toast('当前离线，这次改动没有保存。连上后再操作一次');
+    else toast('操作没成功，检查下网络或权限，再试一次');
+  }
+  /* 表单提交失败：草稿本来就没清，如实告诉用户内容还在 */
+  function writeFailToast(what) {
+    if (!STATE.online) toast(what + '没有保存（当前离线）。内容已留在表单里，连上后点保存即可');
+    else toast(what + '没保存成功，再点一次试试');
+  }
+
+  function delLedger(id) {
+    return apiDelete(DATABASE_ID, id)
+      .then(function () {
+        /* 第 43 轮：删除走本地增量（splice），失败才退回整表重拉 */
+        if (!patchLocalDelete(indexOfRecord(id))) return afterWrite('已删除这条记录');
+        toast('已删除这条记录');
+        refreshAll();
+      })
+      .catch(handleWriteError);
+  }
+  function setShowStatus(id, text) {
+    var payload = { '状态': { select: pickOptionValue('状态', text) } };
+    return apiUpdate(DB_SHOW, id, payload)
+      .then(function () {
+        if (!patchShowUpdate(indexOfShow(id), payload)) return afterWrite('场贩状态 → ' + text);
+        toast('场贩状态 → ' + text);
+        refreshAll();
+      })
+      .catch(handleWriteError);
+  }
+  function delShow(id) {
+    return apiDelete(DB_SHOW, id)
+      .then(function () {
+        if (!patchShowDelete(indexOfShow(id))) return afterWrite('已删除这场场贩');
+        toast('已删除这场场贩');
+        refreshAll();
+      })
+      .catch(handleWriteError);
+  }
+
+  function bindListActions() {
+    /* 概览 · 今天要处理：改状态 / 去看场贩 */
+    $('todayList').addEventListener('click', function (e) {
+      var b = closestEl(e.target, '[data-act]');
+      if (!b) return;
+      var kind = b.getAttribute('data-act');
+      var id = b.getAttribute('data-id');
+      if (kind === 'paid' || kind === 'arrived') {
+        e.stopPropagation();
+        openStatusPop(b, id);
+      } else if (kind === 'show') {
+        STATE.showFilter = 'pending';
+        syncShowChips();
+        switchView('show');
+      }
+    });
+
+    $('consumeList').addEventListener('click', function (e) {
+      var b = closestEl(e.target, '[data-cact]');
+      if (b) {
+        var kind = b.getAttribute('data-cact');
+        var id = b.getAttribute('data-id');
+        if (kind === 'stat') {
+          e.stopPropagation();
+          openStatusPop(b, id);
+        } else if (kind === 'del') confirmThen(b, '再点一次删除', function () { delLedger(id); });
+        return;
+      }
+      /* 点行本身（不是按钮）→ 弹完整详情 */
+      var row = closestEl(e.target, '[data-detail]');
+      if (row) openDetail(row.getAttribute('data-detail'));
+    });
+
+    /* 详情弹层：内部点状态即改；点遮罩空白处收起 */
+    $('detailPop').addEventListener('click', function (e) {
+      var p = closestEl(e.target, '[data-dfield]');
+      if (p) {
+        var did = DETAIL_ID;
+        var field = p.getAttribute('data-dfield');
+        var val = p.getAttribute('data-dval');
+        if (!did || field === null || val === null) return;
+        setFieldStatus(did, field, val).then(function () {
+          if (DETAIL_ID === did) renderDetail(did);   // 改完就地刷新，不关弹层
+        });
+        return;
+      }
+      var sa = closestEl(e.target, '[data-shot-add]');
+      if (sa) { pickShots(sa.getAttribute('data-shot-add')); return; }
+      var sd = closestEl(e.target, '[data-shot-del]');
+      if (sd) { removeShot(sd.getAttribute('data-shot-del'), sd.getAttribute('data-si')); return; }
+      var so = closestEl(e.target, '[data-shot]');
+      if (so) { openShot(so.getAttribute('src')); return; }
+      var sv = closestEl(e.target, '[data-dsave]');
+      if (sv) { saveDetail(sv.getAttribute('data-dsave')); return; }
+      if (closestEl(e.target, '[data-dclose]')) { closeDetail(); return; }
+      var d = closestEl(e.target, '[data-ddel]');
+      if (d) {
+        confirmThen(d, '再点一次确认删除', function () {
+          var id = d.getAttribute('data-ddel');
+          closeDetail();
+          delLedger(id);
+        });
+      }
+    });
+    /* 字段一改，「保存修改」按钮就亮起来并标出改了几项 */
+    $('detailPop').addEventListener('input', syncDetailSave);
+    $('detailPop').addEventListener('change', syncDetailSave);
+    $('detailPop').addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      var el = closestEl(e.target, '[data-df]');
+      if (!el || el.tagName !== 'INPUT') return;   /* 备注框里回车是换行，不拦 */
+      e.preventDefault();
+      saveDetail(DETAIL_ID);
+    });
+    $('detailMask').addEventListener('click', function (e) {
+      if (e.target === $('detailMask')) closeDetail();   // 只认点空白，点卡片里不关
+    });
+
+    /* 浮层内部：点选项即写值（选错也能再点回来，状态没有单向锁） */
+    $('pickPop').addEventListener('click', function (e) {
+      e.stopPropagation();   // 浮层里怎么点都不往外冒，免得被下面的「点空白关闭」吃掉
+      var b = closestEl(e.target, '[data-val]');
+      if (!b) return;
+      var id = PICK_ID;
+      var field = b.getAttribute('data-field');
+      var val = b.getAttribute('data-val');
+      closeStatusPop();
+      if (id) setFieldStatus(id, field, val);
+    });
+
+    /* 点空白处 / 滚动 / 缩放 / Esc 都关掉浮层；点面板外空白收起表单 */
+    document.addEventListener('click', function (e) {
+      closeStatusPop();
+      handleOutsideClick(e.target);
+    });
+    window.addEventListener('scroll', function () { closeStatusPop(); seriesSugPlace(); }, true);
+    window.addEventListener('resize', function () { closeStatusPop(); seriesSugPlace(); });
+    /* 输入框失焦就收起建议（点建议项时会阻止默认行为，所以不会先失焦） */
+    document.addEventListener('focusout', function (e) {
+      if (e.target === SUG_INPUT) seriesSugHide();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' || e.keyCode === 27) {
+        closeStatusPop(); closeShot(); seriesSugHide(); closeSeriesPop(); closeDetail();
+      }
+    });
+
+    /* 「各渠道消费合计」里点拼团那一行 → 展开/收起下面的团名明细 */
+    $('chanSum').addEventListener('click', function (e) {
+      var r = closestEl(e.target, '[data-chsplit]');
+      if (!r || !r.parentNode) return;
+      r.parentNode.classList.toggle('is-open');
+    });
+
+    /* 「各系列消费合计」：点某一系列行 → 看这一个系列按 IP 的明细；
+       点「看全部 N 个系列」那一行 / 卡片标题 → 弹层里看全部（按 IP 分列） */
+    $('seriesSum').addEventListener('click', function (e) {
+      var srow = closestEl(e.target, '[data-series]');
+      if (srow) { openSeriesPop(srow.getAttribute('data-series')); return; }
+      if (closestEl(e.target, '[data-sall]')) openSeriesAll();
+    });
+    /* 卡片标题与说明也是「看全部」的入口（点起来比那一行更容易） */
+    document.addEventListener('click', function (e) {
+      var h = closestEl(e.target, '[data-sall]');
+      if (h && !closestEl(e.target, '#seriesSum')) openSeriesAll();
+    });
+    $('seriesMask').addEventListener('click', function (e) {
+      if (e.target === $('seriesMask')) closeSeriesPop();   /* 只认点空白，点卡片里不关 */
+    });
+    $('seriesPop').addEventListener('click', function (e) {
+      if (closestEl(e.target, '[data-sclose]')) { closeSeriesPop(); return; }
+      if (closestEl(e.target, '[data-sback]')) { openSeriesAll(); return; }   /* 回到全部系列 */
+      var ser = closestEl(e.target, '[data-series]');
+      if (ser) { openSeriesPop(ser.getAttribute('data-series'), true); return; }
+      var rec = closestEl(e.target, '[data-open]');
+      if (rec) {
+        var rid = rec.getAttribute('data-open');
+        closeSeriesPop();                                  /* 先收弹层，再钻到那条记录 */
+        openDetail(rid);
+      }
+    });
+
+    /* 「谷子系列」输入建议：表单和详情里的那个框都走这里（详情是动态生成的，用委托） */
+    document.addEventListener('input', function (e) {
+      var t = e.target;
+      if (!t || !t.getAttribute) return;
+      if (t.id === 'c-series' || t.getAttribute('data-df') === '谷子系列') seriesSugShow(t);
+    });
+    $('seriesSug').addEventListener('mousedown', function (e) {
+      var b = closestEl(e.target, '.sug-item');
+      if (!b) return;
+      e.preventDefault();                /* 别让输入框先失焦，否则点不中这一项 */
+      seriesSugPick(b.getAttribute('data-sug'));
+    });
+
+    $('transferList').addEventListener('click', function (e) {
+      var b = closestEl(e.target, '[data-tact]');
+      if (b) {
+        if (b.getAttribute('data-tact') === 'del') {
+          confirmThen(b, '再点一次删除', function () { delLedger(b.getAttribute('data-id')); });
+        }
+        return;
+      }
+      var row = closestEl(e.target, '[data-detail]');
+      if (row) openDetail(row.getAttribute('data-detail'));
+    });
+
+    $('btnDropDraft').addEventListener('click', function () {
+      resetConsumeForm();
+      clearDraft();
+      toast('草稿已丢弃，表单已清空');
+    });
+
+    $('showList').addEventListener('click', function (e) {
+      var b = closestEl(e.target, '[data-sact]');
+      if (!b) return;
+      var kind = b.getAttribute('data-sact');
+      var id = b.getAttribute('data-id');
+      if (kind === 'done') setShowStatus(id, '已结束');
+      else if (kind === 'reopen') setShowStatus(id, '待开');
+      else if (kind === 'spend') {
+        var s = findIn(STATE.shows, id);
+        if (s) goConsumeFromShow(s['场贩名称']);
+      } else if (kind === 'del') {
+        confirmThen(b, '再点一次删除', function () { delShow(id); });
+      }
+    });
+  }
+
+  function syncShowChips() {
+    Array.prototype.forEach.call($('showFilters').querySelectorAll('.chip'), function (c) {
+      c.classList.toggle('is-on', c.getAttribute('data-sfilter') === STATE.showFilter);
+    });
+  }
+
+  /* ---------- JSON 备份导出与恢复 ---------- */
+  function buildBackup() {
+    return {
+      app: '谷子消费工作台',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      ledger: STATE.ledger,
+      shows: STATE.shows
+    };
+  }
+  function exportBackup() {
+    var text = JSON.stringify(buildBackup(), null, 2);
+    var name = '谷子工作台-备份-' + todayKey() + '.json';
+    try {
+      var blob = new Blob([text], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+      toast('已导出 ' + (STATE.ledger.length + STATE.shows.length) + ' 条记录');
+    } catch (err) {
+      console.error('[backup] 导出失败:', err);
+      showTextFallback(text, name);
+    }
+  }
+  function showTextFallback(text, name) {
+    var w = window.open('', '_blank');
+    if (!w) { toast('浏览器拦住了导出，请手动复制下方内容'); return; }
+    w.document.write('<title>' + esc(name) + '</title><pre style="white-space:pre-wrap;font:12px/1.5 monospace;padding:16px">' + esc(text) + '</pre>');
+    w.document.close();
+  }
+  function toProps(databaseId, row) {
+    var p = {};
+    Object.keys(row).forEach(function (k) {
+      if (k === '_id' || row[k] === null || row[k] === undefined || row[k] === '') return;
+      if (databaseId === DB_SHOW) {
+        if (k === '场贩名称') p[k] = { text: String(row[k]) };
+        else if (k === '日期') p[k] = { date: String(row[k]).slice(0, 10) };
+        else if (k === '状态') p[k] = { select: String(row[k]) };
+        else if (k === '预算') p[k] = { currency: num(row[k]) };
+        else if (k === '备注') p[k] = { text: String(row[k]) };
+        return;
+      }
+      if (k === '金额') p[k] = { currency: num(row[k]) };
+      else if (k === '付款日期') p[k] = { date: String(row[k]).slice(0, 10) };
+      else if (k === '付款截图') {
+        var shots = Array.isArray(row[k]) ? row[k] : ((row[k] && row[k].images) || []);
+        if (shots.length) p[k] = { image: { images: shots } };
+      }
+      else if (k === '记录类型' || k === 'IP' || k === '来源渠道' || k === '到货状态') p[k] = { select: String(row[k]) };
+      else if (k === '谷子名称' || k === '角色' || k === '团名批次' || k === '预计到货' || k === '谷子系列' || k === '备注') p[k] = { text: String(row[k]) };
+    });
+    return p;
+  }
+  function importBackup(json) {
+    if (!json || (!json.ledger && !json.shows)) throw new Error('文件格式不对');
+    var jobs = [];
+    (json.ledger || []).forEach(function (r) { jobs.push({ db: DATABASE_ID, row: r }); });
+    (json.shows || []).forEach(function (r) { jobs.push({ db: DB_SHOW, row: r }); });
+    if (!jobs.length) { toast('备份文件里没有记录'); return Promise.resolve(); }
+
+    var done = 0, failed = 0;
+    var btn = $('btnRestore');
+    markBusy(btn, '恢复中 0/' + jobs.length);
+
+    function step(i) {
+      if (i >= jobs.length) return Promise.resolve();
+      var p = toProps(jobs[i].db, jobs[i].row);
+      return apiAdd(jobs[i].db, p).then(function () {
+        done += 1;
+      }).catch(function () {
+        failed += 1;
+      }).then(function () {
+        if ((done + failed) % 5 === 0 || i === jobs.length - 1) {
+          btn.textContent = '恢复中 ' + (done + failed) + '/' + jobs.length;
+          toast('正在恢复 ' + (done + failed) + '/' + jobs.length);
+        }
+        return step(i + 1);
+      });
+    }
+    return step(0).then(function () {
+      markIdle(btn);
+      toast('恢复完成：成功 ' + done + ' 条' + (failed ? '，失败 ' + failed + ' 条' : ''));
+      return fetchAll();
+    }).then(function () { refreshAll(); });
+  }
+  function handleRestoreFile(file) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      var json = null;
+      try { json = JSON.parse(String(reader.result)); } catch (e) {
+        toast('这个不是有效的备份文件');
+        return;
+      }
+      importBackup(json).catch(function (err) {
+        console.error('[backup] 恢复失败:', err);
+        toast('恢复失败：' + (err && err.message ? err.message : '文件格式不对'));
+      });
+    };
+    reader.onerror = function () { toast('读文件失败'); };
+    reader.readAsText(file, 'utf-8');
+  }
+
+  /* ---------- 初始化与数据变更订阅 ---------- */
+  var subsBound = false;   // onUpdated 整页只能注册一次，重连也不能重复注册
+  function subscribeUpdates() {
+    var db = getDb();
+    if (subsBound || !db || typeof db.onUpdated !== 'function') return;
+    subsBound = true;
+    var timer = null;
+    var syncing = false, pending = false;
+    /* 同步期间的新通知合并为下一次查询，避免并发拉取互相覆盖数据。 */
+    function runUpdateSync() {
+      if (syncing) { pending = true; return; }
+      syncing = true;
+      fetchAll().then(function () { refreshAll(); })
+        .catch(function (err) { console.error('[database] 订阅同步失败:', err); })
+        .then(function () {
+          syncing = false;
+          if (pending) { pending = false; runUpdateSync(); }
+        });
+    }
+    db.onUpdated(function (payload) {
+      var ids = (payload && payload.databaseIds) || [];
+      if (ids.indexOf(DATABASE_ID) === -1 && ids.indexOf(DB_SHOW) === -1) return;
+      /* 第 40 轮：自己刚写完的那次别再全量重拉 —— 本地已经增量更新过了。
+         其他人/其他设备改的，静默期过了照常拉。 */
+      if (Date.now() < SELF_WRITE_UNTIL) return;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(function () {
+        timer = null;
+        runUpdateSync();
+      }, 320);
+    });
+  }
+
+  function bindChrome() {
+    Array.prototype.forEach.call(
+      document.querySelectorAll('.nav-item, .tabbar button'),
+      function (b) {
+        b.addEventListener('click', function () { switchView(b.getAttribute('data-view')); });
+      }
+    );
+    $('btnOpenConsume').addEventListener('click', function () { togglePanel('consumeFormWrap'); });
+    $('btnOpenTransfer').addEventListener('click', function () { togglePanel('transferFormWrap'); });
+    $('btnOpenShow').addEventListener('click', function () { togglePanel('showFormWrap'); });
+    $('btnResetConsume').addEventListener('click', function () { resetConsumeForm(); clearDraft(); });
+    $('btnResetTransfer').addEventListener('click', function () { resetTransferForm(); clearDraft(); });
+    $('btnResetShow').addEventListener('click', function () { resetShowForm(); clearDraft(); });
+    /* 点放大里的图（或遮罩）就收起 */
+    $('shotZoom').addEventListener('click', closeShot);
+
+    $('btnSaveConsume').addEventListener('click', submitConsume);
+    $('btnSaveTransfer').addEventListener('click', submitTransfer);
+    $('btnSaveShow').addEventListener('click', submitShow);
+
+    $('btnBackup').addEventListener('click', exportBackup);
+    $('btnRestore').addEventListener('click', function () { $('restoreFile').click(); });
+    $('btnRetry').addEventListener('click', retryConnect);
+    $('btnDiag').addEventListener('click', copyDiag);
+    $('restoreFile').addEventListener('change', function () {
+      if (this.files && this.files[0]) handleRestoreFile(this.files[0]);
+      this.value = '';
+    });
+
+    /* 连续输入时只重建一次结果表；状态立即更新，切页时仍能拿到最新搜索词。 */
+    var searchTimer = null;
+    $('cSearch').addEventListener('input', function () {
+      STATE.search = this.value; STATE._q = this.value.trim().toLowerCase();
+      STATE.consumeLimit = 40;
+      if (searchTimer) clearTimeout(searchTimer);
+      searchTimer = setTimeout(function () {
+        searchTimer = null;
+        if (STATE.view === 'consume') renderConsume();
+      }, 100);
+    });
+    $('cFilterChannel').addEventListener('change', function () {
+      STATE.filterChannel = this.value; STATE.consumeLimit = 40; renderConsume();
+    });
+    $('cFilterIp').addEventListener('change', function () {
+      STATE.filterIp = this.value; STATE.consumeLimit = 40; renderConsume();
+    });
+    $('cFilterSeries').addEventListener('change', function () {
+      STATE.filterSeries = this.value; STATE.consumeLimit = 40; renderConsume();
+    });
+    $('cFilterShip').addEventListener('change', function () {
+      STATE.filterShip = this.value; STATE.consumeLimit = 40; renderConsume();
+    });
+
+    /* 第 36 轮：点「付款金额 / 付款日期」表头即可排序，再点一下换方向 */
+    $('consumeHead').addEventListener('click', function (e) {
+      var b = closestEl(e.target, '.th-btn[data-sort]');
+      if (!b) return;
+      var key = b.getAttribute('data-sort');
+      if (STATE.sort.indexOf(key + '-') !== 0) STATE.sort = key + '-desc';
+      else STATE.sort = STATE.sort.indexOf('-asc') > 0 ? key + '-desc' : key + '-asc';
+      STATE.consumeLimit = 40;
+      renderConsume();
+    });
+
+    $('consumeMore').addEventListener('click', function (e) {
+      if (closestEl(e.target, '#btnMoreConsume')) { STATE.consumeLimit += 40; renderConsume(); }
+    });
+    $('transferMore').addEventListener('click', function (e) {
+      if (closestEl(e.target, '#btnMoreTransfer')) { STATE.transferLimit += 40; renderTransfer(); }
+    });
+    $('showMore').addEventListener('click', function (e) {
+      if (closestEl(e.target, '#btnMoreShow')) { STATE.showLimit += 60; renderShows(); }
+    });
+    $('showFilters').addEventListener('click', function (e) {
+      var c = closestEl(e.target, '.chip');
+      if (!c) return;
+      STATE.showFilter = c.getAttribute('data-sfilter');
+      STATE.showLimit = 60;
+      syncShowChips();
+      renderShows();
+    });
+
+    bindListActions();
+    bindDraftCaching();
+  }
+
+  /* 同步一次：boot 与「重试连接」共用同一条流程，避免两处逻辑走偏 */
+  function syncOnce(isRetry) {
+    setSync('busy', '正在同步…');
+    /* schema 与数据并行拉取；草稿恢复依赖 schema，页面数据到达即可先展示。 */
+    var schemaReady = loadSchemas().then(function () {
+      if (!isRetry) {
+        restoreDraft();
+        /* 上次没写完的草稿：直接把表单摊开，别让用户自己去找 */
+        if (draftHasContent()) {
+          $('consumeFormWrap').classList.add('is-open');
+          toast('已恢复上次没写完的草稿');
+        }
+        updateDraftHint();
+      }
+      return true;
+    });
+    /* 数据一到先展示；字段配置较慢时，不再挡住首次看到台账与概览。 */
+    var dataReady = fetchAll().then(function (ok) {
+      refreshAll();
+      return ok;
+    });
+    return Promise.all([schemaReady, dataReady]).then(function (res) {
+      var ok = res[1];
+      refreshAll();
+      if (ok) {
+        subscribeUpdates();
+        if (isRetry) toast('已重新连上数据表');
+      }
+      return ok;
+    });
+  }
+
+  /* 等 SDK 就位：宿主注入可能晚于本脚本，干等一次就判"离线"是错的 */
+  function waitForSdk(timeoutMs) {
+    if (getDb()) return Promise.resolve(true);
+    return new Promise(function (resolve) {
+      var t0 = Date.now();
+      var timer = setInterval(function () {
+        if (getDb()) {
+          clearInterval(timer);
+          DIAG.waited = Date.now() - t0;
+          resolve(true);
+        } else if (Date.now() - t0 >= timeoutMs) {
+          clearInterval(timer);
+          DIAG.waited = Date.now() - t0;
+          resolve(false);
+        }
+      }, 150);
+    });
+  }
+
+  /* boot / 重试都用它：先等 SDK，再同步；失败自动退避重试几次，最后才降级 */
+  var SYNC_BACKOFF = [900, 2200, 4500];
+  function syncWithRetry(isRetry) {
+    return waitForSdk(6000).then(function (ready) {
+      if (!ready) {
+        /* SDK 始终没出现：要么不在工作台环境，要么宿主没注入 */
+        STATE.loading = false;
+        loadCache();
+        setSync('off', '离线模式', 'local');
+        refreshAll();
+        toast('本地存储尚未就绪，页面以缓存展示');
+        return false;
+      }
+      var i = 0;
+      function attempt() {
+        return syncOnce(isRetry).then(function (ok) {
+          DIAG.tries = i;
+          if (ok) return true;
+          if (i >= SYNC_BACKOFF.length) return false;
+          var wait = SYNC_BACKOFF[i++];
+          setSync('busy', '正在重试连接…');
+          return new Promise(function (res) { setTimeout(res, wait); }).then(attempt);
+        });
+      }
+      return attempt();
+    });
+  }
+
+  /* 离线后唯一的自救入口：重新嗅探环境 + 重跑同步，不必刷新整个页面 */
+  function retryConnect() {
+    var rb = $('btnRetry');
+    if (rb) { rb.disabled = true; rb.textContent = '连接中…'; }
+    DIAG.tries = 0;
+    syncWithRetry(true).then(function (ok) {
+      /* 不管成功失败都要把按钮复位，否则会一直卡在"连接中…" */
+      if (rb) { rb.disabled = false; rb.textContent = '重试连接'; }
+      if (!ok) toast('还是连不上，可点「复制诊断」把信息发给我');
+    });
+  }
+
+  function boot() {
+    bindChrome();
+    resetConsumeForm();
+    resetTransferForm();
+    /* 先把上次的缓存渲染出来，别让首屏是空白；连上后再覆盖 */
+    if (loadCache()) {
+      STATE.loading = false;
+      refreshAll();
+      setSync('busy', '正在连接…（先显示上次缓存）');
+    }
+    syncWithRetry(false);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+
+})();
+</script>
+</body>
+</html>
