@@ -830,11 +830,7 @@ select{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,%3C
           </div>
           <div class="field">
             <label for="c-group">团名 / 批次</label>
-            <input autocomplete="off" id="c-group" name="ledger-group" list="teamDl" placeholder="下拉选择或直接输入团名" type="text">
-            <datalist id="teamDl">
-              <option value="猫耳"></option>
-              <option value="网王拼团"></option>
-            </datalist>
+            <input autocomplete="off" id="c-group" name="ledger-group" placeholder="下拉选择或直接输入团名" type="text">
           </div>
           <div class="field">
             <label for="c-amount">金额 (¥) <span style="color:#c9564f">*</span></label>
@@ -1078,6 +1074,7 @@ select{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,%3C
 </div>
 <div aria-label="付款截图放大" class="shot-zoom" id="shotZoom" role="dialog"></div>
 <div aria-label="以前填过的系列" class="sug" hidden id="seriesSug" role="listbox"></div>
+<div aria-label="常用团名" class="sug" hidden id="teamSug" role="listbox"></div>
 <input accept=".json,application/json" hidden id="restoreFile" type="file">
 
 <script>
@@ -3011,6 +3008,49 @@ select{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,%3C
     input.focus();
   }
 
+  /* ---------- 团名建议：固定常用团名清单（第 52 轮），下拉样式与页面一致 ---------- */
+  var TEAM_OPTIONS = ['猫耳', '网王拼团'];   /* 以后加团名选项改这里 */
+  var TEAM_SUG_INPUT = null;
+  function teamSugHide() {
+    var box = $('teamSug');
+    if (box) { box.hidden = true; box.innerHTML = ''; }
+    TEAM_SUG_INPUT = null;
+  }
+  function teamSugShow(input) {
+    var box = $('teamSug');
+    if (!box || !input) return;
+    var q = String(input.value || '').trim().toLowerCase();
+    var hit = TEAM_OPTIONS.filter(function (n) {
+      var low = n.toLowerCase();
+      return low.indexOf(q) >= 0 && low !== q;   /* 已完全等于输入的不再提示 */
+    });
+    if (!hit.length) { teamSugHide(); return; }
+    TEAM_SUG_INPUT = input;
+    box.innerHTML = '<div class="sug-cap">常用团名（点一下就用，也可以自己输入）</div>' +
+      hit.map(function (n) { return '<button type="button" class="sug-item" data-tsug="' + esc(n) + '">' + esc(n) + '</button>'; }).join('');
+    box.hidden = false;
+    teamSugPlace();
+  }
+  function teamSugPlace() {
+    var box = $('teamSug'), input = TEAM_SUG_INPUT;
+    if (!box || box.hidden || !input) return;
+    if (!document.body.contains(input)) { teamSugHide(); return; }
+    var rc = input.getBoundingClientRect();
+    var w = Math.min(Math.max(rc.width, 190), Math.max(160, window.innerWidth - 16));
+    box.style.width = w + 'px';
+    box.style.left = Math.max(8, Math.min(rc.left, window.innerWidth - w - 8)) + 'px';
+    box.style.top = (rc.bottom + 6) + 'px';
+  }
+  function teamSugPick(name) {
+    var input = TEAM_SUG_INPUT;
+    teamSugHide();
+    if (!input || !name) return;
+    input.value = name;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.focus();
+  }
+
+
   /* ---------- 系列明细弹层：点概览的系列行弹出，里面按 IP 分类列清 ---------- */
   function seriesPopHtml(name, fromAll) {
     var groups = seriesGroups(name);
@@ -3510,15 +3550,16 @@ select{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,%3C
       closeStatusPop();
       handleOutsideClick(e.target);
     });
-    window.addEventListener('scroll', function () { closeStatusPop(); seriesSugPlace(); }, true);
-    window.addEventListener('resize', function () { closeStatusPop(); seriesSugPlace(); });
+    window.addEventListener('scroll', function () { closeStatusPop(); seriesSugPlace(); teamSugPlace(); }, true);
+    window.addEventListener('resize', function () { closeStatusPop(); seriesSugPlace(); teamSugPlace(); });
     /* 输入框失焦就收起建议（点建议项时会阻止默认行为，所以不会先失焦） */
     document.addEventListener('focusout', function (e) {
       if (e.target === SUG_INPUT) seriesSugHide();
+      if (e.target === TEAM_SUG_INPUT) teamSugHide();
     });
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' || e.keyCode === 27) {
-        closeStatusPop(); closeShot(); seriesSugHide(); closeSeriesPop(); closeMonthPop(); closeDetail();
+        closeStatusPop(); closeShot(); seriesSugHide(); teamSugHide(); closeSeriesPop(); closeMonthPop(); closeDetail();
       }
     });
 
@@ -3576,12 +3617,23 @@ select{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,%3C
       var t = e.target;
       if (!t || !t.getAttribute) return;
       if (t.id === 'c-series' || t.getAttribute('data-df') === '谷子系列') seriesSugShow(t);
+      if (t.id === 'c-group') teamSugShow(t);
+    });
+    document.addEventListener('focusin', function (e) {
+      var t = e.target;
+      if (t && t.id === 'c-group') teamSugShow(t);   /* 点进输入框就弹出全部选项 */
     });
     $('seriesSug').addEventListener('mousedown', function (e) {
       var b = closestEl(e.target, '.sug-item');
       if (!b) return;
       e.preventDefault();                /* 别让输入框先失焦，否则点不中这一项 */
       seriesSugPick(b.getAttribute('data-sug'));
+    });
+    $('teamSug').addEventListener('mousedown', function (e) {
+      var b = closestEl(e.target, '.sug-item');
+      if (!b) return;
+      e.preventDefault();                /* 别让输入框先失焦，否则点不中这一项 */
+      teamSugPick(b.getAttribute('data-tsug'));
     });
 
     $('transferList').addEventListener('click', function (e) {
