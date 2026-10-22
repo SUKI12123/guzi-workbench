@@ -830,7 +830,11 @@ select{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,%3C
           </div>
           <div class="field">
             <label for="c-group">团名 / 批次</label>
-            <input autocomplete="off" id="c-group" name="ledger-group" placeholder="猫耳 / 切煤 / 小九卡社系列…" type="text">
+            <input autocomplete="off" id="c-group" name="ledger-group" list="teamDl" placeholder="下拉选择或直接输入团名" type="text">
+            <datalist id="teamDl">
+              <option value="猫耳"></option>
+              <option value="网王拼团"></option>
+            </datalist>
           </div>
           <div class="field">
             <label for="c-amount">金额 (¥) <span style="color:#c9564f">*</span></label>
