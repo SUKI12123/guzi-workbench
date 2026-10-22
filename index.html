@@ -142,7 +142,7 @@ ul{margin:0;padding:0;list-style:none}
 .view.is-active{display:block}
 
 /* ---------- KPI ---------- */
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:12px;margin-bottom:16px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:16px}
 .kpi{padding:14px 15px;border-radius:var(--r);background:var(--card);border:1px solid var(--line);box-shadow:var(--sh)}
 .kpi .k-label{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
 .kpi .k-val{font-size:22px;font-weight:700;margin-top:6px;letter-spacing:-.3px}
@@ -746,11 +746,6 @@ select{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,%3C
           <div class="k-label"><svg class="ic" viewBox="0 0 24 24"><rect height="16" rx="2" width="18" x="3" y="5"/><path d="M3 11h18M8 3v4M16 3v4"/></svg>本月消费</div>
           <div class="k-val" data-sp-bindable="database" data-sp-database-id="KU34G0iZ9mBABi7PHnyz6w" id="kpiMonth">¥0</div>
           <div class="k-sub" id="kpiMonthSub">—</div>
-        </div>
-        <div class="kpi">
-          <div class="k-label"><svg class="ic" viewBox="0 0 24 24"><path d="M3 7h11v10H3zM14 10h4l3 3v4h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>在途货值</div>
-          <div class="k-val" data-sp-bindable="database" data-sp-database-id="KU34G0iZ9mBABi7PHnyz6w" id="kpiTransit">¥0</div>
-          <div class="k-sub" id="kpiTransitSub">未到货 0 件</div>
         </div>
         <div class="kpi inc">
           <div class="k-label"><svg class="ic" viewBox="0 0 24 24"><path d="M17 3l4 4-4 4M21 7H8M7 21l-4-4 4-4M3 17h13"/></svg>转出回本</div>
@@ -1824,8 +1819,6 @@ select{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,%3C
     $('kpiMonth').textContent = yuan(s.month);
     var now = new Date();
     $('kpiMonthSub').textContent = (now.getMonth() + 1) + ' 月至今';
-    $('kpiTransit').textContent = yuan(s.transit);
-    $('kpiTransitSub').textContent = '未到货 ' + s.transitCount + ' 件';
     $('kpiTransfer').textContent = yuan(s.transferTotal);
     $('kpiTransferSub').textContent = '共 ' + s.transferCount + ' 笔';
     $('kpiNet').textContent = yuan(s.net);
