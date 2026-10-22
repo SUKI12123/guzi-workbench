@@ -544,6 +544,11 @@ select{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,%3C
 .sp-r .sp-n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
 .sp-r .sp-d{color:var(--muted);font-size:11.5px;font-variant-numeric:tabular-nums}
 .sp-r .sp-a{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.mm-sum{font-size:12.5px;color:var(--ink-2);padding:2px 4px 10px}
+.sp-r .sp-meta{display:block;font-style:normal;font-size:11px;color:var(--muted);margin-top:2px}
+.mm-empty{padding:28px 0;text-align:center;color:var(--muted);font-size:13.5px}
+#kpiMonthCard{cursor:pointer;transition:border-color .15s,box-shadow .15s}
+#kpiMonthCard:hover{border-color:#bcd8f0;box-shadow:0 4px 14px rgba(93,161,218,.15)}
 
 /* ---------- 全部系列弹层（点「各系列消费合计」卡片打开）：一个 IP 一列 ---------- */
 .sp-cols{display:flex;gap:11px;overflow-x:auto;padding:2px 2px 6px;align-items:flex-start}
@@ -742,7 +747,7 @@ select{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,%3C
           <div class="k-val" data-sp-bindable="database" data-sp-database-id="KU34G0iZ9mBABi7PHnyz6w" id="kpiTotal">¥0</div>
           <div class="k-sub" id="kpiTotalSub">共 0 笔</div>
         </div>
-        <div class="kpi exp">
+        <div class="kpi exp" id="kpiMonthCard" title="点开本月消费明细">
           <div class="k-label"><svg class="ic" viewBox="0 0 24 24"><rect height="16" rx="2" width="18" x="3" y="5"/><path d="M3 11h18M8 3v4M16 3v4"/></svg>本月消费</div>
           <div class="k-val" data-sp-bindable="database" data-sp-database-id="KU34G0iZ9mBABi7PHnyz6w" id="kpiMonth">¥0</div>
           <div class="k-sub" id="kpiMonthSub">—</div>
@@ -1061,6 +1066,9 @@ select{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,%3C
 </div>
 <div aria-label="系列明细" aria-modal="true" class="modal-mask" id="seriesMask" role="dialog">
   <div class="modal" id="seriesPop"></div>
+</div>
+<div aria-label="本月消费明细" aria-modal="true" class="modal-mask" id="monthMask" role="dialog">
+  <div class="modal" id="monthPop"></div>
 </div>
 <div aria-label="付款截图放大" class="shot-zoom" id="shotZoom" role="dialog"></div>
 <div aria-label="以前填过的系列" class="sug" hidden id="seriesSug" role="listbox"></div>
@@ -3095,6 +3103,51 @@ select{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,%3C
     if (!dm || !dm.classList.contains('on')) document.body.style.overflow = '';
   }
 
+  /* ---------- 本月消费明细弹层（点概览「本月消费」卡打开，第 49 轮） ---------- */
+  function monthPopHtml() {
+    var tm = todayKey().slice(0, 7);
+    var rows = spends().filter(function (r) {
+      return r['付款日期'] ? String(r['付款日期']).slice(0, 7) === tm : false;
+    }).sort(function (a, b) {
+      return (b['付款日期'] || '') > (a['付款日期'] || '') ? 1 : -1;
+    });
+    var total = rows.reduce(function (a, r) { return a + num(r['金额']); }, 0);
+    var body = rows.map(function (r) {
+      var meta = [r['IP'], r['来源渠道']].filter(function (x) { return x; }).join(' · ');
+      return '<li class="sp-r" data-open="' + esc(r._id) + '" title="点开这条记录">' +
+        '<span class="sp-n">' + esc(r['谷子名称'] || '(未填名称)') +
+        (meta ? '<i class="sp-meta">' + esc(meta) + '</i>' : '') + '</span>' +
+        '<span class="sp-d">' + (r['付款日期'] ? esc(md(r['付款日期'])) : '无付款日期') + '</span>' +
+        '<span class="sp-a">' + yuan(num(r['金额'])) + '</span></li>';
+    }).join('');
+    var tp = tm.split('-');
+    return '<div class="modal-head">' +
+      '<div class="m-title">本月消费 · ' + tp[0] + ' 年 ' + parseInt(tp[1], 10) + ' 月</div>' +
+      '<span class="m-amt">' + yuan(total) + '</span>' +
+      '<button type="button" class="m-close" data-close-month="1" aria-label="关闭">' +
+        '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+        'stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
+      '</button></div>' +
+      '<div class="mm-sum">' + rows.length + ' 笔 · 按付款日期归月，点任一记录可看详情</div>' +
+      (rows.length ? '<ul class="sp-list">' + body + '</ul>'
+                   : '<div class="mm-empty">本月还没有消费记录</div>');
+  }
+  function openMonthPop() {
+    var m = $('monthMask'), pop = $('monthPop');
+    if (!m || !pop) return;
+    pop.innerHTML = monthPopHtml();
+    m.classList.add('on');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeMonthPop() {
+    var m = $('monthMask');
+    if (m) m.classList.remove('on');
+    var dm = $('detailMask');
+    var sm = $('seriesMask');
+    if ((!dm || !dm.classList.contains('on')) && (!sm || !sm.classList.contains('on'))) document.body.style.overflow = '';
+  }
+
+
   /* 一个字段一个控件：类型决定形态，值来自记录本身 */
   function detailControlHtml(field, r) {
     var type = detailFieldType(field);
@@ -3454,7 +3507,7 @@ select{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,%3C
     });
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' || e.keyCode === 27) {
-        closeStatusPop(); closeShot(); seriesSugHide(); closeSeriesPop(); closeDetail();
+        closeStatusPop(); closeShot(); seriesSugHide(); closeSeriesPop(); closeMonthPop(); closeDetail();
       }
     });
 
@@ -3476,6 +3529,15 @@ select{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,%3C
     document.addEventListener('click', function (e) {
       var h = closestEl(e.target, '[data-sall]');
       if (h && !closestEl(e.target, '#seriesSum')) openSeriesAll();
+    });
+    $('kpiMonthCard').addEventListener('click', openMonthPop);
+    $('monthMask').addEventListener('click', function (e) {
+      if (e.target === $('monthMask')) closeMonthPop();   /* 只认点空白 */
+    });
+    $('monthPop').addEventListener('click', function (e) {
+      if (closestEl(e.target, '[data-close-month]')) { closeMonthPop(); return; }
+      var r = closestEl(e.target, '[data-open]');
+      if (r) { closeMonthPop(); openDetail(r.getAttribute('data-open')); }
     });
     $('seriesMask').addEventListener('click', function (e) {
       if (e.target === $('seriesMask')) closeSeriesPop();   /* 只认点空白，点卡片里不关 */
