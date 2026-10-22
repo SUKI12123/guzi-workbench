@@ -549,6 +549,8 @@ select{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,%3C
 .mm-empty{padding:28px 0;text-align:center;color:var(--muted);font-size:13.5px}
 #kpiMonthCard{cursor:pointer;transition:border-color .15s,box-shadow .15s}
 #kpiMonthCard:hover{border-color:#bcd8f0;box-shadow:0 4px 14px rgba(93,161,218,.15)}
+.mc-g{cursor:pointer}
+.mc-g:hover rect{fill:#2b6fb5}
 
 /* ---------- 全部系列弹层（点「各系列消费合计」卡片打开）：一个 IP 一列 ---------- */
 .sp-cols{display:flex;gap:11px;overflow-x:auto;padding:2px 2px 6px;align-items:flex-start}
@@ -1967,12 +1969,17 @@ select{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,%3C
       var w = bw * 0.64;
       var y = H - padB - h;
       var isThis = i === rows.length - 1;
-      bars += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + w.toFixed(1) + '" height="' +
+      /* 第 50 轮：整列可点 → 弹出该月消费明细 */
+      var col = '<g class="mc-g" data-month="' + d.k + '">' +
+        '<title>' + Math.round(d.v) + ' 元 · ' + d.k + '（点看当月明细）</title>' +
+        '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + w.toFixed(1) + '" height="' +
         Math.max(h, d.v > 0 ? 2 : 0).toFixed(1) + '" rx="3" fill="' + (isThis ? '#2b6fb5' : '#3a86cc') + '"></rect>';
       if (d.v > 0) {
-        bars += '<text x="' + (x + w / 2).toFixed(1) + '" y="' + (y - 4).toFixed(1) +
+        col += '<text x="' + (x + w / 2).toFixed(1) + '" y="' + (y - 4).toFixed(1) +
           '" text-anchor="middle" font-size="9.5" fill="#8398a8">' + Math.round(d.v) + '</text>';
       }
+      col += '</g>';
+      bars += col;
       labels += '<text x="' + (x + w / 2).toFixed(1) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="10" fill="#8398a8">' +
         (Number(d.k.slice(5)) + '月') + '</text>';
     });
@@ -3104,8 +3111,8 @@ select{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,%3C
   }
 
   /* ---------- 本月消费明细弹层（点概览「本月消费」卡打开，第 49 轮） ---------- */
-  function monthPopHtml() {
-    var tm = todayKey().slice(0, 7);
+  function monthPopHtml(ym) {
+    var tm = ym || todayKey().slice(0, 7);
     var rows = spends().filter(function (r) {
       return r['付款日期'] ? String(r['付款日期']).slice(0, 7) === tm : false;
     }).sort(function (a, b) {
@@ -3122,7 +3129,7 @@ select{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,%3C
     }).join('');
     var tp = tm.split('-');
     return '<div class="modal-head">' +
-      '<div class="m-title">本月消费 · ' + tp[0] + ' 年 ' + parseInt(tp[1], 10) + ' 月</div>' +
+      '<div class="m-title">消费明细 · ' + tp[0] + ' 年 ' + parseInt(tp[1], 10) + ' 月</div>' +
       '<span class="m-amt">' + yuan(total) + '</span>' +
       '<button type="button" class="m-close" data-close-month="1" aria-label="关闭">' +
         '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
@@ -3132,10 +3139,10 @@ select{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,%3C
       (rows.length ? '<ul class="sp-list">' + body + '</ul>'
                    : '<div class="mm-empty">本月还没有消费记录</div>');
   }
-  function openMonthPop() {
+  function openMonthPop(ym) {
     var m = $('monthMask'), pop = $('monthPop');
     if (!m || !pop) return;
-    pop.innerHTML = monthPopHtml();
+    pop.innerHTML = monthPopHtml(ym);
     m.classList.add('on');
     document.body.style.overflow = 'hidden';
   }
@@ -3530,7 +3537,12 @@ select{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,%3C
       var h = closestEl(e.target, '[data-sall]');
       if (h && !closestEl(e.target, '#seriesSum')) openSeriesAll();
     });
-    $('kpiMonthCard').addEventListener('click', openMonthPop);
+    $('kpiMonthCard').addEventListener('click', function () { openMonthPop(); });   /* 别把 event 当 ym 传进去 */
+    /* 近 12 个月走势：点某个月的柱子 → 该月消费明细 */
+    $('chartMonth').addEventListener('click', function (e) {
+      var g = closestEl(e.target, '[data-month]');
+      if (g) openMonthPop(g.getAttribute('data-month'));
+    });
     $('monthMask').addEventListener('click', function (e) {
       if (e.target === $('monthMask')) closeMonthPop();   /* 只认点空白 */
     });
